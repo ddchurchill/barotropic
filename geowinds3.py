@@ -10,6 +10,7 @@ earth_radius = 6371.e3 # meters
 # Create a grid of latitude and longitude values
 # 1 degree grids
 grid_spacing = 1. # 1 degree grid spacing
+grid_spacing_rad = grid_spacing * np.pi / 180. # grid spacing in radians
 nlat, nlon = 140, 360
 lat_lin = np.linspace(-70, 70, nlat)
 mu = np.sin(lat_lin * np.pi/180.) # used in equation for geostrophic east-west wind
@@ -49,7 +50,7 @@ dzdy = np.gradient(geopot, axis=0) / np.gradient(lat * np.pi / 180, axis=0)
 #
 # calculate dzdy using constant difference argument of 1 deg resolution
 #
-dzdy = np.gradient(geopot,grid_spacing * np.pi / 180, axis=0) 
+dzdy = np.gradient(geopot,grid_spacing_rad, axis=0) 
 
 f = 2 * np.pi / 86400 * np.sin(lat * np.pi / 180)
 
@@ -57,7 +58,7 @@ f = 2 * np.pi / 86400 * np.sin(lat * np.pi / 180)
 #
 # dzdx is change of phi with respect to lambda
 #
-dzdx = np.gradient(geopot, grid_spacing * np.pi/180, axis=1)
+dzdx = np.gradient(geopot, grid_spacing_rad, axis=1)
 
 #dzdmu = np.gradient(geopot, dmu, axis=0)
 ug = - dzdy / (f* earth_radius)
@@ -137,17 +138,16 @@ vorticity = dvdx - dudy  + f
 # use laplacian to get vorticity
 #
 
-dphi = np.gradient(phi_rad)
-dlambda = np.gradient(lambda_rad)
-dzdphi = np.gradient(geopot,axis=0)/dphi
-dzdlambda = np.gradient(geopot,axis=1)/dlambda
-d2zdphi2 = np.gradient(dzdphi, axis=0)/dphi
-d2zdlambda2 = np.gradient(dzdlambda, axis=1)/dlambda
+#dphi = np.gradient(phi_rad)
+#dlambda = np.gradient(lambda_rad)
+dzdphi = np.gradient(geopot,grid_spacing_rad, axis=0)
+dzdlambda = np.gradient(geopot,grid_spacing_rad, axis=1)
+d2zdphi2 = np.gradient(dzdphi,grid_spacing_rad, axis=0)
+d2zdlambda2 = np.gradient(dzdlambda, grid_spacing_rad, axis=1)
 
-vorticity = d2zdphi2/earth_radius**2 + d2zdlambda2/(earth_radius*np.cos(phi_rad))**2
-
-#vorticity = np.gradient(np.gradient(geopot,axis=0),axis=0)/(earth_radius **2) \
-#    np.gradient(np.gradient(geopot,axis=1),axis=1)/(earth_radius * cos_lat)**2 
+#vorticity = d2zdphi2/earth_radius**2 + d2zdlambda2 /(earth_radius**2) #*np.cos(phi_rad))**2
+denom = 1./(earth_radius *np.cos(lat * np.pi/180))**2
+vorticity = d2zdphi2/earth_radius**2 + np.multiply(d2zdlambda2 ,denom) + f
 
 print("max vort: ", np.max(vorticity))
 print("min vort: ", np.min(vorticity))
