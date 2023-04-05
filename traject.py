@@ -18,7 +18,6 @@ def northwind(lat, lon, time_step):
     return 0, -10
 
 def cyclone(lat, lon, time_step):
-    print("Cyclone: time", time_step)
     if(time_step == 0):
         return 20, 0
     if(time_step == 1):
@@ -42,7 +41,32 @@ def cyclone(lat, lon, time_step):
     if(time_step == 10):
         return 0, -20
     return 0,-20
-    
+
+def anticyclone(lat, lon, time_step):
+    if(time_step == 0):
+        return -20, 0
+    if(time_step == 1):
+        return -20, 0
+    if(time_step == 2):
+        return -10, -10
+    if(time_step == 3):
+        return -10, -10
+    if(time_step == 4):
+        return 0, -20
+    if(time_step == 5):
+        return 0, -20
+    if(time_step == 6):
+        return 20, 0
+    if(time_step == 7):
+        return 20, 0
+    if(time_step == 8):
+        return 10, 10
+    if(time_step == 9):
+        return 10, 10
+    if(time_step == 10):
+        return 0, 20
+    return 0,20
+
         
 
     
@@ -74,12 +98,13 @@ def euler(velocity, lat0, lon0, deltat, nt):
         ug, vg = velocity(lat_traj[-1], lon_traj[-1], t)
         if ug is None:
             break;
-        dlambda = ug * deltat / (earth_radius * np.cos(lat_traj[-1] * np.pi/180))* 180./np.pi
-        print("euler:ug, vg: ", ug, vg)
-        dphi = vg * deltat /(earth_radius) * 180/np.pi
+        deltax = earth_radius * np.cos(np.deg2rad(lat_traj[-1]))
+        dlambda = ug * deltat / deltax
+
+        dphi = np.degrees(vg * deltat /earth_radius) 
         euler_lat = lat_traj[-1] + dphi
         lat_traj.append( euler_lat)
-        euler_lon = lon_traj[-1] + dlambda
+        euler_lon = lon_traj[-1] + np.degrees( dlambda)
         lon_traj.append(euler_lon)
         
     
@@ -101,7 +126,7 @@ def huen(velocity, lat0, lon0, deltat, nt):
 #
 # initialize the trajectory with the input lat and lon
 #
-    print("huen: ", lat0, lon0, deltat, nt)
+
     traj_lon = [lon0]
     traj_lat = [lat0]
 #
@@ -112,7 +137,7 @@ def huen(velocity, lat0, lon0, deltat, nt):
 
         # get the wind components at the current lat, lon, and time step
         u, v = velocity(traj_lat[-1], traj_lon[-1], t)
-        print("u,v:", u, v)
+
         if u is None:
             break;
 
@@ -127,8 +152,8 @@ def huen(velocity, lat0, lon0, deltat, nt):
         # and at the next time step.
         
         u_next, v_next = velocity(euler_lat, euler_lon, t+1)
-        print("u1, v1:", u_next, v_next)
-        if u_next is None:
+
+        if u_next is None: # no velocity found -- lat & lon are out of bounds
             break;
 
         # update the longitude with huen's method.
@@ -145,7 +170,9 @@ def huen(velocity, lat0, lon0, deltat, nt):
         # append the euler updated lat and lon to the arrays
         traj_lon.append(euler_lon)
         traj_lat.append(euler_lat)
-
+#
+# return the arrays
+#
     return traj_lat, traj_lon
 
 
@@ -154,22 +181,20 @@ def main():
     deltat = 3600  # 1 hour integration period
     lat0 = 10. # degrees
     lon0 = 20. # degrees starting point
-#    lat_traj, lon_traj = step_forward(geowind, lat0, lon0, deltat, nt)
 #    lat_traj, lon_traj = huen(newind, lat0, lon0, deltat, nt)
-    lat_traj, lon_traj = huen(cyclone, lat0, lon0, deltat, nt)
-#    lat_traj, lon_traj = euler(cyclone, at0, lon0, deltat, nt)
+#    lat_traj, lon_traj = huen(cyclone, lat0, lon0, deltat, nt)
+    lat_traj, lon_traj = huen(anticyclone, lat0, lon0, deltat, nt)
+#    lat_traj, lon_traj = euler(anticyclone, lat0, lon0, deltat, nt)
 #    lat_traj, lon_traj = euler(cyclone, lat0, lon0, deltat, nt)
     np.set_printoptions(precision=6)
-    print("latitudes: ",lat_traj)
 
+# plot the trajectory
     for i in range(len(lat_traj)-1):
         dx = lon_traj[i+1] - lon_traj[i]
         dy = lat_traj[i+1] - lat_traj[i]
-        length = np.sqrt(dx * dx + dy * dy)
-        print("length: ", length)
         plt.arrow(lon_traj[i], lat_traj[i], lon_traj[i+1] -lon_traj[i], lat_traj[i+1]-lat_traj[i], \
                   length_includes_head=True, head_length=0.1, head_width=0.05)
-    print("longitudes: ", lon_traj)
+
 #    plt.figure()
 #    plt.plot(lon_traj, lat_traj)
     
