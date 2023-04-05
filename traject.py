@@ -78,24 +78,26 @@ def anticyclone(lat, lon, time_step):
 #
 def  nowind(lat, lon, time_step):
     return None
-#
-# euler - compute trajectory by simple forward step
-# input lat0 - starting latitude of parcel
-# input lon0 - starting longitude of parcel
-# input deltat - time step in seconds. 
-# input nt - number of time steps to integrate over
-# input velocity - the function that returns the u and v components of the wind
-#
-# output: Trajectory object - linear arrays of length nt steps showing position of parcel
-#
+
+
+
 def euler( velocity, lat0, lon0, deltat, nt):
+    """
+    euler - compute trajectory by simple forward step
+    Parameters:
+    input lat0 - starting latitude of parcel
+    input lon0 - starting longitude of parcel
+     input deltat - time step in seconds. 
+    input nt - number of time steps to integrate over
+    input velocity - the function that returns the u and v components of the wind
+
+    Returns:
+    Trajectory object - linear arrays of length nt steps showing position of parcel
+    """
+#
 #
 # initialize the trajectory
 #
-#    lat_traj = np.zeros(nt, dtype=float)
-#    lon_traj = np.zeros(nt, dtype=float)
-#    lon_traj = [lon0]
-#    lat_traj = [lat0]
     traj = Trajectory(lat0, lon0)
     for t in range(0, nt): # repeat for each time step
 
@@ -103,30 +105,34 @@ def euler( velocity, lat0, lon0, deltat, nt):
         if wind is None:
             break;
         deltax = earth_radius * np.cos(np.deg2rad(traj.last_lat()))
-        dlambda = wind.u * deltat / deltax
+
 
         dphi = np.degrees(wind.v * deltat /earth_radius) 
         euler_lat = traj.last_lat() + dphi
         traj.lat.append( euler_lat)
+        
+        dlambda = wind.u * deltat / deltax
         euler_lon = traj.last_lon() + np.degrees( dlambda)
         traj.lon.append(euler_lon)
         
     
     return traj
 
-# huen - compute trajectory integrating by huens method
-# input wind - method that returns the velocity at specified
-#     input latitude, longitude and time step. This function is variable, to accomodate
-# test functions as well as for production wind data. 
-# input lat0 - starting latitude of parcel
-# input lon0 - starting longitude of parcel
-# input deltat - time step in seconds. 
-# input nt - number of time steps to integrate over
-#
-# output: lon_traj, lat_traj - linear arrays of length nt steps showing position of parcel
 #
 def huen( wind, lat0, lon0, deltat, nt):
+    """
+    huen - compute trajectory integrating by huens method
+    input wind - method that returns the velocity at specified
+     input latitude, longitude and time step. This function is variable, to accomodate
+    test functions as well as for production wind data. 
+    input lat0 - starting latitude of parcel
+    input lon0 - starting longitude of parcel
+    input deltat - time step in seconds. 
+    input nt - number of time steps to integrate over
 
+    Returns:
+    Trajectory object
+"""
 #
 # initialize the trajectory with the input lat and lon
 #
@@ -174,7 +180,7 @@ def huen( wind, lat0, lon0, deltat, nt):
         euler_lat = traj.last_lat() + \
             0.5 * deltat *np.degrees((v + next_wind.v) / earth_radius)
 
-        # append the euler updated lat and lon to the arrays
+        # append the euler-updated lat and lon to the trajectory object
         traj.lon.append(euler_lon)
         traj.lat.append(euler_lat)
 #
@@ -200,7 +206,7 @@ def main():
     for i in range(len(traj.lat)-1):
         dx = traj.lon[i+1] - traj.lon[i]
         dy = traj.lat[i+1] - traj.lat[i]
-        plt.arrow(traj.lon[i], traj.lat[i], traj.lon[i+1] -traj.lon[i], traj.lat[i+1]-traj.lat[i], \
+        plt.arrow(traj.lon[i], traj.lat[i], dx, dy, \
                   length_includes_head=True, head_length=0.1, head_width=0.05)
 
     
