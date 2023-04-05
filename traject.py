@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from velocity import Velocity as vel
+from trajectory import Trajectory 
 #
 earth_radius = 6371e3 # in meters
     
@@ -85,7 +86,7 @@ def  nowind(lat, lon, time_step):
 # input nt - number of time steps to integrate over
 # input velocity - the function that returns the u and v components of the wind
 #
-# output: lon_traj, lat_traj - linear arrays of length nt steps showing position of parcel
+# output: Trajectory object - linear arrays of length nt steps showing position of parcel
 #
 def euler( velocity, lat0, lon0, deltat, nt):
 #
@@ -93,24 +94,25 @@ def euler( velocity, lat0, lon0, deltat, nt):
 #
 #    lat_traj = np.zeros(nt, dtype=float)
 #    lon_traj = np.zeros(nt, dtype=float)
-    lon_traj = [lon0]
-    lat_traj = [lat0]
+#    lon_traj = [lon0]
+#    lat_traj = [lat0]
+    traj = Trajectory(lat0, lon0)
     for t in range(0, nt): # repeat for each time step
 
-        wind = velocity(lat_traj[-1], lon_traj[-1], t)
+        wind = velocity(traj.last_lat(), traj.last_lon(), t)
         if wind is None:
             break;
-        deltax = earth_radius * np.cos(np.deg2rad(lat_traj[-1]))
+        deltax = earth_radius * np.cos(np.deg2rad(traj.last_lat()))
         dlambda = wind.u * deltat / deltax
 
         dphi = np.degrees(wind.v * deltat /earth_radius) 
-        euler_lat = lat_traj[-1] + dphi
-        lat_traj.append( euler_lat)
-        euler_lon = lon_traj[-1] + np.degrees( dlambda)
-        lon_traj.append(euler_lon)
+        euler_lat = traj.last_lat() + dphi
+        traj.lat.append( euler_lat)
+        euler_lon = traj.last_lon() + np.degrees( dlambda)
+        traj.lon.append(euler_lon)
         
     
-    return lat_traj, lon_traj
+    return traj
 
 # huen - compute trajectory integrating by huens method
 # input wind - method that returns the velocity at specified
@@ -129,8 +131,9 @@ def huen( wind, lat0, lon0, deltat, nt):
 # initialize the trajectory with the input lat and lon
 #
 
-    traj_lon = [lon0]
-    traj_lat = [lat0]
+#    traj_lon = [lon0]
+#    traj_lat = [lat0]
+    traj = Trajectory(lat0, lon0)
 #
 # repeat for each time step
 # but exit loop if the velocity was not found -- as when the lat and lon
@@ -138,7 +141,7 @@ def huen( wind, lat0, lon0, deltat, nt):
     for t in range(0, nt): 
 
         # get the wind components at the current lat, lon, and time step
-        vector = wind(traj_lat[-1], traj_lon[-1], t)
+        vector = wind(traj.last_lat(), traj.last_lon(), t)
         u = vector.u
         v = vector.v
 
@@ -146,11 +149,11 @@ def huen( wind, lat0, lon0, deltat, nt):
             break;
 
         # update the longitude
-        deltax = earth_radius * np.cos(np.deg2rad(traj_lat[-1]))
+        deltax = earth_radius * np.cos(np.deg2rad(traj.last_lat()))
         # euler forward step first for longitude
-        euler_lon = traj_lon[-1] + np.degrees(u * deltat / deltax)
+        euler_lon = traj.last_lon() + np.degrees(u * deltat / deltax)
         # get euler's update to latitude
-        euler_lat = traj_lat[-1] + np.degrees(v * deltat / earth_radius )
+        euler_lat = traj.last_lat() + np.degrees(v * deltat / earth_radius )
 
         # get updated wind vector at updated longitude and latitude
         # and at the next time step.
@@ -164,20 +167,20 @@ def huen( wind, lat0, lon0, deltat, nt):
         # use the euler updated latitude to convert distance to degrees
         deltax = earth_radius * np.cos(np.deg2rad(euler_lat))
 
-        euler_lon = traj_lon[-1] + 0.5 * deltat *np.degrees((u + next_wind.u)/deltax)
+        euler_lon = traj.last_lon() + 0.5 * deltat *np.degrees((u + next_wind.u)/deltax)
         
         # update the latitude with euler's method
 
-        euler_lat = traj_lat[-1] + \
+        euler_lat = traj.last_lat() + \
             0.5 * deltat *np.degrees((v + next_wind.v) / earth_radius)
 
         # append the euler updated lat and lon to the arrays
-        traj_lon.append(euler_lon)
-        traj_lat.append(euler_lat)
+        traj.lon.append(euler_lon)
+        traj.lat.append(euler_lat)
 #
-# return the arrays
+# return the trajectory object
 #
-    return traj_lat, traj_lon
+    return traj
 
 
 def main():
@@ -185,22 +188,21 @@ def main():
     deltat = 3600  # 1 hour integration period
     lat0 = 10. # degrees
     lon0 = 20. # degrees starting point
-#    lat_traj, lon_traj = huen(newind, lat0, lon0, deltat, nt)
-#    lat_traj, lon_traj = huen(cyclone, lat0, lon0, deltat, nt)
-    lat_traj, lon_traj = huen(anticyclone, lat0, lon0, deltat, nt)
-    lat_traj, lon_traj = euler(anticyclone, lat0, lon0, deltat, nt)
+
+    traj = huen(anticyclone, lat0, lon0, deltat, nt)
+
+#    traj = euler(anticyclone, lat0, lon0, deltat, nt)
+
 #    lat_traj, lon_traj = euler(cyclone, lat0, lon0, deltat, nt)
     np.set_printoptions(precision=6)
 
 # plot the trajectory
-    for i in range(len(lat_traj)-1):
-        dx = lon_traj[i+1] - lon_traj[i]
-        dy = lat_traj[i+1] - lat_traj[i]
-        plt.arrow(lon_traj[i], lat_traj[i], lon_traj[i+1] -lon_traj[i], lat_traj[i+1]-lat_traj[i], \
+    for i in range(len(traj.lat)-1):
+        dx = traj.lon[i+1] - traj.lon[i]
+        dy = traj.lat[i+1] - traj.lat[i]
+        plt.arrow(traj.lon[i], traj.lat[i], traj.lon[i+1] -traj.lon[i], traj.lat[i+1]-traj.lat[i], \
                   length_includes_head=True, head_length=0.1, head_width=0.05)
 
-#    plt.figure()
-#    plt.plot(lon_traj, lat_traj)
     
     plt.show()
 #
