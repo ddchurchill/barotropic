@@ -61,34 +61,50 @@ def huen(velocity, lat0, lon0, deltat, nt):
     lon_traj = np.zeros(nt, dtype=float)
     lon_traj[0] = lon0 # initialize the trajectory longitude
     lat_traj[0] = lat0  # initalize the trajectory latitude
+    traj.lon =[lon0]
+    traj.lat = [lat0]
 #
 # repeat for each time step
-    for t in range(0, nt -1): 
+# by exit loop if the velocity was not found -- as when the lat and lon
+# are out of bounds 
+    for t in range(1, nt): 
 
         # get the wind components at the current lat, lon, and time step
-        u, v = velocity(lat_traj[t], lon_traj[t], t)
+#        u, v = velocity(lat_traj[t], lon_traj[t], t)
+        u, v = velocity(traj.lat[-1], traj.lon[-1], t)
 
         # update the longitude
-        deltax = earth_radius * np.cos(np.deg2rad(lat_traj[t]))
+        #deltax = earth_radius * np.cos(np.deg2rad(lat_traj[t]))
+        deltax = earth_radius * np.cos(np.deg2rad(traj.lat[-1]))
         # euler forward step first for longitude
-        lon_euler = lon_traj[t] + np.degrees(u * deltat / deltax)
+#        lon_euler = lon_traj[t] + np.degrees(u * deltat / deltax)
+        euler.lon = traj.lon[-1] + np.degrees(u * deltat / deltax)
         # get euler's update to latitude
-        lat_euler = lat_traj[t] + np.degrees(v * deltat / earth_radius )
+#        lat_euler = lat_traj[t] + np.degrees(v * deltat / earth_radius )
+        euler.lat = traj.lat[-1] + np.degrees(v * deltat / earth_radius )
 
         # get updated wind vector at updated longitude and latitude
         # and at the next time step.
         
-        u_next, v_next = velocity(lat_euler, lon_euler, t+1)
-        # update the longitude with euler's method.
+        u_next, v_next = velocity(euler.lat, euler.lon, t+1)
+
+        # update the longitude with huen's method.
         # use the euler updated latitude to convert distance to degrees
-        deltax = earth_radius * np.cos(np.deg2rad(lat_euler))
-        lon_traj[t+1] = lon_traj[t] \
-            + 0.5 * deltat *np.degrees((u + u_next)/deltax)
+        deltax = earth_radius * np.cos(np.deg2rad(euler.lat))
+        #        lon_traj[t+1] = lon_traj[t] \
+        euler.lon = traj.lon[-1] + 0.5 * deltat *np.degrees((u + u_next)/deltax)
         
         # update the latitude with euler's method
-        lat_traj[t+1] = lat_traj[t] + \
+        # lat_traj[t+1] = lat_traj[t] + \
+
+        euler.lat = traj.lat[-1] + \
             0.5 * deltat *np.degrees((v + v_next) / earth_radius)
-    return lat_traj, lon_traj
+
+        # append the euler updated lat and lon to the arrays
+        traj.lon.append(euler.lon)
+        traj.lat.append(euler.lat)
+
+    return traj.lat, traj.lon
 
 
 def main():
