@@ -8,7 +8,11 @@ earth_radius = 6371e3 # in meters
 # 
 def geowind(lat, lon, time_step):
     return 10,1
-
+#
+# nowind returns null values for winds, as when lat and lon are out of bounds
+#
+def nowind(lat, lon, time_step):
+    return null, null
 #
 # step_forward - compute trajectory by simple forward step
 # input lat0 - starting latitude of parcel
@@ -61,8 +65,8 @@ def huen(velocity, lat0, lon0, deltat, nt):
     lon_traj = np.zeros(nt, dtype=float)
     lon_traj[0] = lon0 # initialize the trajectory longitude
     lat_traj[0] = lat0  # initalize the trajectory latitude
-    traj.lon =[lon0]
-    traj.lat = [lat0]
+    traj_lon = [lon0]
+    traj_lat = [lat0]
 #
 # repeat for each time step
 # by exit loop if the velocity was not found -- as when the lat and lon
@@ -70,41 +74,36 @@ def huen(velocity, lat0, lon0, deltat, nt):
     for t in range(1, nt): 
 
         # get the wind components at the current lat, lon, and time step
-#        u, v = velocity(lat_traj[t], lon_traj[t], t)
-        u, v = velocity(traj.lat[-1], traj.lon[-1], t)
+        u, v = velocity(traj_lat[-1], traj_lon[-1], t)
 
         # update the longitude
-        #deltax = earth_radius * np.cos(np.deg2rad(lat_traj[t]))
-        deltax = earth_radius * np.cos(np.deg2rad(traj.lat[-1]))
+        deltax = earth_radius * np.cos(np.deg2rad(traj_lat[-1]))
         # euler forward step first for longitude
-#        lon_euler = lon_traj[t] + np.degrees(u * deltat / deltax)
-        euler.lon = traj.lon[-1] + np.degrees(u * deltat / deltax)
+        euler_lon = traj_lon[-1] + np.degrees(u * deltat / deltax)
         # get euler's update to latitude
-#        lat_euler = lat_traj[t] + np.degrees(v * deltat / earth_radius )
-        euler.lat = traj.lat[-1] + np.degrees(v * deltat / earth_radius )
+        euler_lon = traj_lat[-1] + np.degrees(v * deltat / earth_radius )
 
         # get updated wind vector at updated longitude and latitude
         # and at the next time step.
         
-        u_next, v_next = velocity(euler.lat, euler.lon, t+1)
+        u_next, v_next = velocity(euler_lon, euler_lon, t+1)
 
         # update the longitude with huen's method.
         # use the euler updated latitude to convert distance to degrees
-        deltax = earth_radius * np.cos(np.deg2rad(euler.lat))
-        #        lon_traj[t+1] = lon_traj[t] \
-        euler.lon = traj.lon[-1] + 0.5 * deltat *np.degrees((u + u_next)/deltax)
+        deltax = earth_radius * np.cos(np.deg2rad(euler_lon))
+
+        euler_lon = traj_lon[-1] + 0.5 * deltat *np.degrees((u + u_next)/deltax)
         
         # update the latitude with euler's method
-        # lat_traj[t+1] = lat_traj[t] + \
 
-        euler.lat = traj.lat[-1] + \
+        euler_lat = traj_lat[-1] + \
             0.5 * deltat *np.degrees((v + v_next) / earth_radius)
 
         # append the euler updated lat and lon to the arrays
-        traj.lon.append(euler.lon)
-        traj.lat.append(euler.lat)
+        traj_lon.append(euler_lon)
+        traj_lat.append(euler_lat)
 
-    return traj.lat, traj.lon
+    return traj_lat, traj_lon
 
 
 def main():
@@ -112,14 +111,17 @@ def main():
     deltat = 3600  # 1 hour integration period
     lat0 = 10.1 # degrees
     lon0 = 20.1 # degrees starting point
-    lat_traj, lon_traj = step_forward(geowind, lat0, lon0, deltat, nt)
-#    lat_traj, lon_traj = huen(lat0, lon0, deltat, nt)
+#    lat_traj, lon_traj = step_forward(geowind, lat0, lon0, deltat, nt)
+    lat_traj, lon_traj = huen(geowind, lat0, lon0, deltat, nt)
     np.set_printoptions(precision=6)
     print("latitudes: ",lat_traj)
     print("longitudes: ", lon_traj)
     plt.figure()
     plt.plot(lon_traj, lat_traj)
     plt.show()
-    
+#
+# now test when no winds are found
+#
+
 if __name__ == "__main__":
     main()          
