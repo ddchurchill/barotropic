@@ -6,13 +6,20 @@ earth_radius = 6371e3 # in meters
 # define constant geostrophic wind for testing.
 # this method gets passed as an argument to the integration routine
 # 
-def geowind(lat, lon, time_step):
-    return 10,1
+def swwind(lat, lon, time_step):
+    return 10,10
+def westwind(lat,lon, time_step):
+    return 20, 0
+def eastwind(lat, lon, time_step):
+    return -20, 0
+def newind(lat, lon, time_step):
+    return -10, -10
+
 #
 # nowind returns null values for winds, as when lat and lon are out of bounds
 #
 def nowind(lat, lon, time_step):
-    return null, null
+    return None, None
 #
 # step_forward - compute trajectory by simple forward step
 # input lat0 - starting latitude of parcel
@@ -36,6 +43,8 @@ def step_forward(velocity, lat0, lon0, deltat, nt):
 #        ug = getu(lat_traj[t], lon_traj[t], t)
 #        vg = getv(lat_traj[t], lon_traj[t], t)
         ug, vg = velocity(lat_traj[t], lon_traj[t], t)
+        if ug is None:
+            break;
         dlambda = ug * deltat / (earth_radius * np.cos(lat_traj[t] * np.pi/180))* 180./np.pi
 #        print("ug, lat, deltat, dlambda: ", ug, lat_traj[t], deltat, dlambda)
         dphi = vg * deltat /(earth_radius) * 180/np.pi
@@ -59,38 +68,38 @@ def step_forward(velocity, lat0, lon0, deltat, nt):
 def huen(velocity, lat0, lon0, deltat, nt):
 
 #
-# initialize the trajectory
+# initialize the trajectory with the input lat and lon
 #
-    lat_traj = np.zeros(nt, dtype=float)
-    lon_traj = np.zeros(nt, dtype=float)
-    lon_traj[0] = lon0 # initialize the trajectory longitude
-    lat_traj[0] = lat0  # initalize the trajectory latitude
     traj_lon = [lon0]
     traj_lat = [lat0]
 #
 # repeat for each time step
-# by exit loop if the velocity was not found -- as when the lat and lon
+# but exit loop if the velocity was not found -- as when the lat and lon
 # are out of bounds 
-    for t in range(1, nt): 
+    for t in range(0, nt): 
 
         # get the wind components at the current lat, lon, and time step
         u, v = velocity(traj_lat[-1], traj_lon[-1], t)
+        if u is None:
+            break;
 
         # update the longitude
         deltax = earth_radius * np.cos(np.deg2rad(traj_lat[-1]))
         # euler forward step first for longitude
         euler_lon = traj_lon[-1] + np.degrees(u * deltat / deltax)
         # get euler's update to latitude
-        euler_lon = traj_lat[-1] + np.degrees(v * deltat / earth_radius )
+        euler_lat = traj_lat[-1] + np.degrees(v * deltat / earth_radius )
 
         # get updated wind vector at updated longitude and latitude
         # and at the next time step.
         
-        u_next, v_next = velocity(euler_lon, euler_lon, t+1)
+        u_next, v_next = velocity(euler_lat, euler_lon, t+1)
+        if u_next is None:
+            break;
 
         # update the longitude with huen's method.
         # use the euler updated latitude to convert distance to degrees
-        deltax = earth_radius * np.cos(np.deg2rad(euler_lon))
+        deltax = earth_radius * np.cos(np.deg2rad(euler_lat))
 
         euler_lon = traj_lon[-1] + 0.5 * deltat *np.degrees((u + u_next)/deltax)
         
@@ -112,16 +121,24 @@ def main():
     lat0 = 10.1 # degrees
     lon0 = 20.1 # degrees starting point
 #    lat_traj, lon_traj = step_forward(geowind, lat0, lon0, deltat, nt)
-    lat_traj, lon_traj = huen(geowind, lat0, lon0, deltat, nt)
+    lat_traj, lon_traj = huen(newind, lat0, lon0, deltat, nt)
     np.set_printoptions(precision=6)
     print("latitudes: ",lat_traj)
+
+    for i in range(len(lat_traj)-1):
+        plt.arrow(lon_traj[i], lat_traj[i], lon_traj[i+1] -lon_traj[i], lat_traj[i+1]-lat_traj[i], \
+                  length_includes_head=True, head_length=0.1, head_width=0.05)
     print("longitudes: ", lon_traj)
-    plt.figure()
-    plt.plot(lon_traj, lat_traj)
+#    plt.figure()
+#    plt.plot(lon_traj, lat_traj)
+    
     plt.show()
 #
 # now test when no winds are found
 #
-
+    lat_traj, lon_traj = huen(nowind, lat0, lon0, deltat, nt)
+    print("no wind lat: ",lat_traj)
+    print("no wind lon: ", lon_traj)
+    
 if __name__ == "__main__":
     main()          
