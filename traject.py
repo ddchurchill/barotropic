@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from velocity import Velocity as vel
 #
 earth_radius = 6371e3 # in meters
     
@@ -7,65 +8,66 @@ earth_radius = 6371e3 # in meters
 # this method gets passed as an argument to the integration routine
 # 
 def swwind(lat, lon, time_step):
-    return 10,10
+    return vel(10,10)
 def westwind(lat,lon, time_step):
-    return 20, 0
+    return vel(20, 0)
 def eastwind(lat, lon, time_step):
-    return -20, 0
+    return vel(-20, 0)
 def newind(lat, lon, time_step):
-    return -10, -10
+    return vel(-10, -10)
 def northwind(lat, lon, time_step):
-    return 0, -10
+    return vel( 0, -10)
 
 def cyclone(lat, lon, time_step):
     if(time_step == 0):
-        return 20, 0
+        return vel(20, 0)
     if(time_step == 1):
-        return 20, 0
+        return vel(20, 0)
     if(time_step == 2):
-        return 10, 10
+        return vel(10, 10)
     if(time_step == 3):
-        return 10, 10
+        return vel(10, 10)
     if(time_step == 4):
-        return 0, 20
+        return vel(0, 20)
     if(time_step == 5):
-        return 0, 20
+        return vel(0, 20)
     if(time_step == 6):
-        return -20, 0
+        return vel(-20, 0)
     if(time_step == 7):
-        return -20, 0
+        return vel(-20, 0)
     if(time_step == 8):
-        return -10, -10
+        return vel(-10, -10)
     if(time_step == 9):
-        return -10, -10
+        return vel(-10, -10)
     if(time_step == 10):
-        return 0, -20
-    return 0,-20
+        return vel(0, -20)
+    return vel(0,-20)
 
 def anticyclone(lat, lon, time_step):
     if(time_step == 0):
-        return -20, 0
+        v = vel(-20,0)
+        return v
     if(time_step == 1):
-        return -20, 0
+        return vel(-20, 0)
     if(time_step == 2):
-        return -10, -10
+        return vel(-10, -10)
     if(time_step == 3):
-        return -10, -10
+        return vel(-10, -10)
     if(time_step == 4):
-        return 0, -20
+        return vel(0, -20)
     if(time_step == 5):
-        return 0, -20
+        return vel(0, -20)
     if(time_step == 6):
-        return 20, 0
+        return vel(20, 0)
     if(time_step == 7):
-        return 20, 0
+        return vel(20, 0)
     if(time_step == 8):
-        return 10, 10
+        return vel(10, 10)
     if(time_step == 9):
-        return 10, 10
+        return vel(10, 10)
     if(time_step == 10):
-        return 0, 20
-    return 0,20
+        return vel(0, 20)
+    return vel(0,20)
 
         
 
@@ -73,8 +75,8 @@ def anticyclone(lat, lon, time_step):
 #
 # nowind returns null values for winds, as when lat and lon are out of bounds
 #
-def nowind(lat, lon, time_step):
-    return None, None
+def  nowind(lat, lon, time_step):
+    return None
 #
 # euler - compute trajectory by simple forward step
 # input lat0 - starting latitude of parcel
@@ -85,7 +87,7 @@ def nowind(lat, lon, time_step):
 #
 # output: lon_traj, lat_traj - linear arrays of length nt steps showing position of parcel
 #
-def euler(velocity, lat0, lon0, deltat, nt):
+def euler( velocity, lat0, lon0, deltat, nt):
 #
 # initialize the trajectory
 #
@@ -95,13 +97,13 @@ def euler(velocity, lat0, lon0, deltat, nt):
     lat_traj = [lat0]
     for t in range(0, nt): # repeat for each time step
 
-        ug, vg = velocity(lat_traj[-1], lon_traj[-1], t)
-        if ug is None:
+        wind = velocity(lat_traj[-1], lon_traj[-1], t)
+        if wind is None:
             break;
         deltax = earth_radius * np.cos(np.deg2rad(lat_traj[-1]))
-        dlambda = ug * deltat / deltax
+        dlambda = wind.u * deltat / deltax
 
-        dphi = np.degrees(vg * deltat /earth_radius) 
+        dphi = np.degrees(wind.v * deltat /earth_radius) 
         euler_lat = lat_traj[-1] + dphi
         lat_traj.append( euler_lat)
         euler_lon = lon_traj[-1] + np.degrees( dlambda)
@@ -111,7 +113,7 @@ def euler(velocity, lat0, lon0, deltat, nt):
     return lat_traj, lon_traj
 
 # huen - compute trajectory integrating by huens method
-# input velocity - method that returns the velocity at specified
+# input wind - method that returns the velocity at specified
 #     input latitude, longitude and time step. This function is variable, to accomodate
 # test functions as well as for production wind data. 
 # input lat0 - starting latitude of parcel
@@ -121,7 +123,7 @@ def euler(velocity, lat0, lon0, deltat, nt):
 #
 # output: lon_traj, lat_traj - linear arrays of length nt steps showing position of parcel
 #
-def huen(velocity, lat0, lon0, deltat, nt):
+def huen( wind, lat0, lon0, deltat, nt):
 
 #
 # initialize the trajectory with the input lat and lon
@@ -136,7 +138,9 @@ def huen(velocity, lat0, lon0, deltat, nt):
     for t in range(0, nt): 
 
         # get the wind components at the current lat, lon, and time step
-        u, v = velocity(traj_lat[-1], traj_lon[-1], t)
+        vector = wind(traj_lat[-1], traj_lon[-1], t)
+        u = vector.u
+        v = vector.v
 
         if u is None:
             break;
@@ -151,21 +155,21 @@ def huen(velocity, lat0, lon0, deltat, nt):
         # get updated wind vector at updated longitude and latitude
         # and at the next time step.
         
-        u_next, v_next = velocity(euler_lat, euler_lon, t+1)
+        next_wind = wind(euler_lat, euler_lon, t+1)
 
-        if u_next is None: # no velocity found -- lat & lon are out of bounds
+        if next_wind is None: # no wind found -- lat & lon are out of bounds
             break;
 
         # update the longitude with huen's method.
         # use the euler updated latitude to convert distance to degrees
         deltax = earth_radius * np.cos(np.deg2rad(euler_lat))
 
-        euler_lon = traj_lon[-1] + 0.5 * deltat *np.degrees((u + u_next)/deltax)
+        euler_lon = traj_lon[-1] + 0.5 * deltat *np.degrees((u + next_wind.u)/deltax)
         
         # update the latitude with euler's method
 
         euler_lat = traj_lat[-1] + \
-            0.5 * deltat *np.degrees((v + v_next) / earth_radius)
+            0.5 * deltat *np.degrees((v + next_wind.v) / earth_radius)
 
         # append the euler updated lat and lon to the arrays
         traj_lon.append(euler_lon)
@@ -184,7 +188,7 @@ def main():
 #    lat_traj, lon_traj = huen(newind, lat0, lon0, deltat, nt)
 #    lat_traj, lon_traj = huen(cyclone, lat0, lon0, deltat, nt)
     lat_traj, lon_traj = huen(anticyclone, lat0, lon0, deltat, nt)
-#    lat_traj, lon_traj = euler(anticyclone, lat0, lon0, deltat, nt)
+    lat_traj, lon_traj = euler(anticyclone, lat0, lon0, deltat, nt)
 #    lat_traj, lon_traj = euler(cyclone, lat0, lon0, deltat, nt)
     np.set_printoptions(precision=6)
 
