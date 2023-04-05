@@ -14,14 +14,45 @@ def eastwind(lat, lon, time_step):
     return -20, 0
 def newind(lat, lon, time_step):
     return -10, -10
+def northwind(lat, lon, time_step):
+    return 0, -10
 
+def cyclone(lat, lon, time_step):
+    print("Cyclone: time", time_step)
+    if(time_step == 0):
+        return 20, 0
+    if(time_step == 1):
+        return 20, 0
+    if(time_step == 2):
+        return 10, 10
+    if(time_step == 3):
+        return 10, 10
+    if(time_step == 4):
+        return 0, 20
+    if(time_step == 5):
+        return 0, 20
+    if(time_step == 6):
+        return -20, 0
+    if(time_step == 7):
+        return -20, 0
+    if(time_step == 8):
+        return -10, -10
+    if(time_step == 9):
+        return -10, -10
+    if(time_step == 10):
+        return 0, -20
+    return 0,-20
+    
+        
+
+    
 #
 # nowind returns null values for winds, as when lat and lon are out of bounds
 #
 def nowind(lat, lon, time_step):
     return None, None
 #
-# step_forward - compute trajectory by simple forward step
+# euler - compute trajectory by simple forward step
 # input lat0 - starting latitude of parcel
 # input lon0 - starting longitude of parcel
 # input deltat - time step in seconds. 
@@ -30,26 +61,26 @@ def nowind(lat, lon, time_step):
 #
 # output: lon_traj, lat_traj - linear arrays of length nt steps showing position of parcel
 #
-def step_forward(velocity, lat0, lon0, deltat, nt):
+def euler(velocity, lat0, lon0, deltat, nt):
 #
 # initialize the trajectory
 #
-    lat_traj = np.zeros(nt, dtype=float)
-    lon_traj = np.zeros(nt, dtype=float)
-    lon_traj[0] = lon0
-    lat_traj[0] = lat0
-    for t in range(0, nt -1): # repeat for each time step
+#    lat_traj = np.zeros(nt, dtype=float)
+#    lon_traj = np.zeros(nt, dtype=float)
+    lon_traj = [lon0]
+    lat_traj = [lat0]
+    for t in range(0, nt): # repeat for each time step
 
-#        ug = getu(lat_traj[t], lon_traj[t], t)
-#        vg = getv(lat_traj[t], lon_traj[t], t)
-        ug, vg = velocity(lat_traj[t], lon_traj[t], t)
+        ug, vg = velocity(lat_traj[-1], lon_traj[-1], t)
         if ug is None:
             break;
-        dlambda = ug * deltat / (earth_radius * np.cos(lat_traj[t] * np.pi/180))* 180./np.pi
-#        print("ug, lat, deltat, dlambda: ", ug, lat_traj[t], deltat, dlambda)
+        dlambda = ug * deltat / (earth_radius * np.cos(lat_traj[-1] * np.pi/180))* 180./np.pi
+        print("euler:ug, vg: ", ug, vg)
         dphi = vg * deltat /(earth_radius) * 180/np.pi
-        lat_traj[t+1] = lat_traj[t] + dphi
-        lon_traj[t+1] = lon_traj[t] + dlambda
+        euler_lat = lat_traj[-1] + dphi
+        lat_traj.append( euler_lat)
+        euler_lon = lon_traj[-1] + dlambda
+        lon_traj.append(euler_lon)
         
     
     return lat_traj, lon_traj
@@ -70,6 +101,7 @@ def huen(velocity, lat0, lon0, deltat, nt):
 #
 # initialize the trajectory with the input lat and lon
 #
+    print("huen: ", lat0, lon0, deltat, nt)
     traj_lon = [lon0]
     traj_lat = [lat0]
 #
@@ -80,6 +112,7 @@ def huen(velocity, lat0, lon0, deltat, nt):
 
         # get the wind components at the current lat, lon, and time step
         u, v = velocity(traj_lat[-1], traj_lon[-1], t)
+        print("u,v:", u, v)
         if u is None:
             break;
 
@@ -94,6 +127,7 @@ def huen(velocity, lat0, lon0, deltat, nt):
         # and at the next time step.
         
         u_next, v_next = velocity(euler_lat, euler_lon, t+1)
+        print("u1, v1:", u_next, v_next)
         if u_next is None:
             break;
 
@@ -116,16 +150,23 @@ def huen(velocity, lat0, lon0, deltat, nt):
 
 
 def main():
-    nt = 10
+    nt = 12
     deltat = 3600  # 1 hour integration period
-    lat0 = 10.1 # degrees
-    lon0 = 20.1 # degrees starting point
+    lat0 = 10. # degrees
+    lon0 = 20. # degrees starting point
 #    lat_traj, lon_traj = step_forward(geowind, lat0, lon0, deltat, nt)
-    lat_traj, lon_traj = huen(newind, lat0, lon0, deltat, nt)
+#    lat_traj, lon_traj = huen(newind, lat0, lon0, deltat, nt)
+    lat_traj, lon_traj = huen(cyclone, lat0, lon0, deltat, nt)
+#    lat_traj, lon_traj = euler(cyclone, at0, lon0, deltat, nt)
+#    lat_traj, lon_traj = euler(cyclone, lat0, lon0, deltat, nt)
     np.set_printoptions(precision=6)
     print("latitudes: ",lat_traj)
 
     for i in range(len(lat_traj)-1):
+        dx = lon_traj[i+1] - lon_traj[i]
+        dy = lat_traj[i+1] - lat_traj[i]
+        length = np.sqrt(dx * dx + dy * dy)
+        print("length: ", length)
         plt.arrow(lon_traj[i], lat_traj[i], lon_traj[i+1] -lon_traj[i], lat_traj[i+1]-lat_traj[i], \
                   length_includes_head=True, head_length=0.1, head_width=0.05)
     print("longitudes: ", lon_traj)
@@ -136,9 +177,9 @@ def main():
 #
 # now test when no winds are found
 #
-    lat_traj, lon_traj = huen(nowind, lat0, lon0, deltat, nt)
-    print("no wind lat: ",lat_traj)
-    print("no wind lon: ", lon_traj)
+#    lat_traj, lon_traj = huen(nowind, lat0, lon0, deltat, nt)
+#    print("no wind lat: ",lat_traj)
+#    print("no wind lon: ", lon_traj)
     
 if __name__ == "__main__":
     main()          
