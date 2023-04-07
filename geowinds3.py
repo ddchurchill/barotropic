@@ -11,11 +11,19 @@ earth_radius = 6371.e3 # meters
 # 1 degree grids
 grid_spacing = 1. # 1 degree grid spacing
 grid_spacing_rad = grid_spacing * np.pi / 180. # grid spacing in radians
-nlat, nlon = 140, 360
-lat_lin = np.linspace(-70, 70, nlat)
+min_lon = -160
+max_lon = -20
+min_lat = 10
+max_lat = 70
+nlat = max_lat - min_lat
+#nlat, nlon = 140, 360
+nlon = max_lon - min_lon
+#lat_lin = np.linspace(-70, 70, nlat)
+lat_lin = np.linspace(min_lat, max_lat, nlat)
 mu = np.sin(lat_lin * np.pi/180.) # used in equation for geostrophic east-west wind
 dmu = np.gradient(mu) 
-lon_lin = np.linspace(-180, 180, nlon)
+#lon_lin = np.linspace(-180, 180, nlon)
+lon_lin = np.linspace(min_lon, max_lon, nlon)
 lon, lat = np.meshgrid(lon_lin, lat_lin)
 phi_rad = np.array(lat_lin * np.pi/180.)  # latitude in radians
 lambda_rad = np.array(lon_lin * np.pi/180.)  # longitude in radians
@@ -23,24 +31,24 @@ lambda_rad = np.array(lon_lin * np.pi/180.)  # longitude in radians
 # Define the geopotential field with two ridges in the northern hemisphere and two ridges in the southern hemisphere
 # north pacific
 decay = 10
-r1 = np.exp(-((lat - 30) / decay) ** 2 - ((lon -170) / decay) ** 2)
+r1 = np.exp(-((lat - 30) / decay) ** 2 - ((lon + 120) / decay) ** 2)
 
 r2 = np.exp(-((lat + 30) / decay) ** 2 - ((lon + 120) / decay) ** 2)
 # north atlantic low
-r3 = - np.exp(-((lat - 30) / decay) ** 2 - ((lon + 40) / decay) ** 2)
+r3 = - np.exp(-((lat - 30) / decay) ** 2 - ((lon + 80) / decay) ** 2)
 r4 = np.exp(-((lat + 30) / decay) ** 2 - ((lon + 10) / decay) ** 2)
 
-geopot = ((r1 + r2 + r3 + r4) * 100 + 5000) * gravity
+#geopot = ((r1 + r2 + r3 + r4) * 100 + 5000) * gravity
+geopot = ((r1 + r3) * 100 + 5000) * gravity
 
 
 # Compute the geostrophic winds
 # This works
 #dzdx = np.gradient(geopot, axis=1) / np.gradient(lon * np.pi / 180, axis=1)
 #
-# try dzdz as second argument. Does not work.
 #
-lon_grad = np.gradient(lon_lin* np.pi/180) # 1-D array longitudes
-#dzdx = np.gradient(geopot, lon_grad, axis=1)
+#lon_grad = np.gradient(lon_lin* np.pi/180) # 1-D array longitudes
+
 
 deltay = np.pi/180./earth_radius
 deltax = np.pi/180./earth_radius # wrong - needs cos phi
@@ -78,7 +86,7 @@ print("max speed:", maxspeed)
 fig = plt.figure(figsize=(12, 6))
 
 # Create a new map projection
-m = Basemap(projection='cyl', llcrnrlat=-90, urcrnrlat=90, llcrnrlon=-180, urcrnrlon=180)
+m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
 # Draw the continents and coastlines
 m.drawcoastlines(linewidth=0.5,color='white')
@@ -104,7 +112,7 @@ f = 2 * np.pi / 86400 * np.sin(lat * np.pi / 180)
 fig2 = plt.figure(figsize=(12, 8))
 
 # Create a new map projection
-m = Basemap(projection='cyl', llcrnrlat=-90, urcrnrlat=90, llcrnrlon=-180, urcrnrlon=180)
+m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
 # Draw the continents and coastlines in white
 m.drawcoastlines(linewidth=0.5, color='white')
@@ -121,15 +129,8 @@ plt.show()
 # plot the absolute voriticity
 #
 
-deltax = 1/(earth_radius * np.cos(lat))
-deltay = 1./earth_radius
-#d2zdx2 = np.gradient(dzdx,axis=1)/np.gradient(lon * np.pi/180, axis = 1)
-#d2zdy2 = np.gradient(dzdy,axis=0)/np.gradient(lat * np.pi/180, axis = 0)
 
 coslat = np.cos(lat * np.pi/180)
-#vorticity = (d2zdx2 + d2zdy2) # + f
-#dvdy = np.gradient(vg, axis=0)/np.gradient(lat * np.pi/180,axis=0)/earth_radius
-#dudx = np.gradient(ug,axis=1)/np.gradient(lon * np.pi/180, axis=1) / (earth_radius*coslat) 
 dvdx = np.gradient(vg, axis=0)/np.gradient(lon * np.pi/180, axis=1) / (earth_radius*coslat)
 dudy = np.gradient(ug,axis=1)/np.gradient(lon * np.pi/180, axis=1) / (earth_radius*coslat) 
 
@@ -138,32 +139,30 @@ vorticity = dvdx - dudy  + f
 # use laplacian to get vorticity
 #
 
-#dphi = np.gradient(phi_rad)
-#dlambda = np.gradient(lambda_rad)
 dzdphi = np.gradient(geopot,grid_spacing_rad, axis=0)
 dzdlambda = np.gradient(geopot,grid_spacing_rad, axis=1)
 d2zdphi2 = np.gradient(dzdphi,grid_spacing_rad, axis=0)
 d2zdlambda2 = np.gradient(dzdlambda, grid_spacing_rad, axis=1)
 
-#vorticity = d2zdphi2/earth_radius**2 + d2zdlambda2 /(earth_radius**2) #*np.cos(phi_rad))**2
 denom = 1./(earth_radius *np.cos(lat * np.pi/180))**2
-vorticity = d2zdphi2/earth_radius**2 + np.multiply(d2zdlambda2 ,denom) + f
+relative_vorticity = d2zdphi2/earth_radius**2 + np.multiply(d2zdlambda2 ,denom)
+absolute_vorticity = relative_vorticity + f
 
-print("max vort: ", np.max(vorticity))
-print("min vort: ", np.min(vorticity))
+print("max rel vort: ", np.max(relative_vorticity))
+print("min relativevort: ", np.min(relative_vorticity))
       
 fig3 = plt.figure(figsize=(12,8))
 
-m = Basemap(projection='cyl', llcrnrlat=-90, urcrnrlat=90, llcrnrlon=-180, urcrnrlon=180)
+m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
 # Draw the continents and coastlines in white                                                                            
 m.drawcoastlines(linewidth=0.5, color='white')
 m.drawcountries(linewidth=0.5, color='white')
 
-m.contourf(x,y,vorticity, cmap='jet',levels=50)
+m.contourf(x,y,relative_vorticity, cmap='jet',levels=50)
 # Add a colorbar and title                                                                                               
 plt.colorbar(label='vorticity')
-plt.title('absolute vorticity')
+plt.title('relative vorticity')
 plt.show()
 #
 # now calculate trajectories
@@ -187,7 +186,7 @@ coriolis = 2 * np.pi / 86400
 #
 for t in range(1, nt):
     # Compute Coriolis parameter at current latitude
-    f_lat = coriolis * np.sin(np.radians(lat_traj[:, t-1]))
+#    f_lat = coriolis * np.sin(np.radians(lat_traj[:, t-1]))
     
     # Compute velocity at previous location
     u_prev = np.interp(lon_traj[:, t-1], lon, ug[np.argmin(np.abs(lat_traj[:, t-1] - lat))])
