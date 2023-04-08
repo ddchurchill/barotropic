@@ -129,6 +129,8 @@ vg = winds.imag
 
 m.quiver(x[::5, ::5], y[::5, ::5], ug[::5, ::5], vg[::5, ::5], scale=1000, color='white')
 
+m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
+m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
 # Add a colorbar and title
 plt.colorbar(label='Geopotential')
 plt.title('Geopotential and Geostrophic Wind Vectors')
@@ -156,6 +158,9 @@ m.drawcoastlines(linewidth=0.5, color='white')
 m.drawcountries(linewidth=0.5, color='white')
 
 m.contourf(x,y,np.abs(winds), cmap='jet',levels=50)
+m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
+m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+
 # Draw the geostrophic# Show the plot
 # Add a colorbar and title
 plt.colorbar(label='Wind speed')
@@ -197,7 +202,9 @@ m.drawcoastlines(linewidth=0.5, color='white')
 m.drawcountries(linewidth=0.5, color='white')
 
 m.contourf(x,y,relative_vorticity, cmap='jet',levels=50)
-# Add a colorbar and title                                                                                               
+# Add a colorbar and title                                                                                      m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
+m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
 plt.colorbar(label='vorticity')
 plt.title('relative vorticity')
 plt.show()
@@ -212,6 +219,7 @@ nt = 10 # number of time steps
 #
 init_lat = 35.
 init_lon = -80.
+
 # Trajectory calculation using Euler's method
 # Plotting the trajectories
 deltat = 12 * 3600 # 12 hour time steps
@@ -219,7 +227,16 @@ nsteps = 10 # number of times to integrate over
 parcel_trajectory = huen(model_wind, init_lat, init_lon, deltat, nsteps)
 
 
-plt.figure(figsize=(8, 6))
+fig4 = plt.figure(figsize=(12,8))
+
+m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
+
+# Draw the continents and coastlines in white                                                                            
+m.drawcoastlines(linewidth=0.5, color='black')
+m.drawcountries(linewidth=0.5, color='black')
+m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
+m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+
 plt.title('Particle Trajectories')
 plt.xlabel('Longitude (degrees)')
 plt.ylabel('Latitude (degrees)')
@@ -238,5 +255,5 @@ for i in range(len(lats)-1):
                   length_includes_head=True, head_length=1, head_width=1)
 
 
-plt.grid()
+#plt.grid()
 plt.show()
