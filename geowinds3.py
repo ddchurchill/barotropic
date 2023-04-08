@@ -66,16 +66,6 @@ def prescribe_z(lon,lat):
 
 def prescribe_winds():
 # Compute the geostrophic winds
-# This works
-#dzdx = np.gradient(geopot, axis=1) / np.gradient(lon * np.pi / 180, axis=1)
-#
-#
-#lon_grad = np.gradient(lon_lin* np.pi/180) # 1-D array longitudes
-
-
-    deltay = np.pi/180./earth_radius
-    deltax = np.pi/180./earth_radius # wrong - needs cos phi
-    lat_grad = np.gradient(lat * np.pi / 180)
     dzdy = np.gradient(geopot, axis=0) / np.gradient(lat * np.pi / 180, axis=0)
     #
     #
@@ -98,6 +88,41 @@ def prescribe_winds():
 
     #
     return wind_vector
+
+def plot_trajectories(init_lons, init_lats, deltat, nsteps):
+
+    # plot trajectories
+    fig4 = plt.figure(figsize=(12,8))
+
+
+    # Draw the continents and coastlines in white                                                                            
+    m.drawcoastlines(linewidth=0.5, color='black')
+    m.drawcountries(linewidth=0.5, color='black')
+    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
+    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+
+
+    plt.title('Particle Trajectories')
+
+    for j in range(len(init_lons)):
+        parcel_trajectory = huen(model_wind, init_lats[j], init_lons[j], deltat, nsteps)
+
+
+        lons = parcel_trajectory.lons()
+        lats = parcel_trajectory.lats()
+        print("Traj lats: ", lats)
+        print("Traj lons: ", lons)
+
+
+        for i in range(len(lats)-1):
+            dx = lons[i+1] - lons[i]
+            dy = lats[i+1] - lats[i]
+            plt.arrow(lons[i], lats[i], dx, dy, \
+                  length_includes_head=True, head_length=1, head_width=1)
+
+
+    plt.show()
+
 #
 # generate geopotential field on the lat lon grid
 #
@@ -105,9 +130,9 @@ geopot = prescribe_z(lon,lat)
 
 winds = prescribe_winds()
 wsize =winds.shape
-print("Winds array size: ", wsize)
-print("Lon array: ", lon_lin.shape)
-print("lat array: ", lat_lin.shape)
+#print("Winds array size: ", wsize)
+#print("Lon array: ", lon_lin.shape)
+#print("lat array: ", lat_lin.shape)
 
 ## Create a new figure
 fig = plt.figure(figsize=(12, 6))
@@ -204,46 +229,13 @@ plt.colorbar(label='vorticity')
 plt.title('relative vorticity')
 plt.show()
 #
-# now calculate trajectories
-# start with Euler's method
-#
 npart = 10 # number of parcel trajectories
 nt = 10 # number of time steps
 #
-# set initial lat and lon of trajector
-#
-init_lat = 35.
-init_lon = -80.
 
-# Trajectory calculation using Euler's method
 # Plotting the trajectories
 deltat = 12 * 3600 # 12 hour time steps
 nsteps = 10 # number of times to integrate over
-parcel_trajectory = huen(model_wind, init_lat, init_lon, deltat, nsteps)
 
 
-fig4 = plt.figure(figsize=(12,8))
-
-# Draw the continents and coastlines in white                                                                            
-m.drawcoastlines(linewidth=0.5, color='black')
-m.drawcountries(linewidth=0.5, color='black')
-m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
-m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
-
-plt.title('Particle Trajectories')
-#plt.xlabel('Longitude (degrees)')
-#plt.ylabel('Latitude (degrees)')
-lons = parcel_trajectory.lons()
-lats = parcel_trajectory.lats()
-print("Traj lats: ", lats)
-print("Traj lons: ", lons)
-
-
-for i in range(len(lats)-1):
-        dx = lons[i+1] - lons[i]
-        dy = lats[i+1] - lats[i]
-        plt.arrow(lons[i], lats[i], dx, dy, \
-                  length_includes_head=True, head_length=1, head_width=1)
-
-
-plt.show()
+plot_trajectories([-80,-120], [35,35], deltat, nsteps)
