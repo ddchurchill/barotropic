@@ -19,7 +19,14 @@ class Trajectory:
 #
     def last_lon(self):
         return self.lon[-1]
-
+#
+# return the array of latitudes
+#
+    def lats(self):
+        return self.lat
+    def lons(self):
+        return self.lon
+    
 if __name__ == "__main__":
     a = Trajectory(10., 20.)
     print("a:", a.last_lat(), a.last_lon())

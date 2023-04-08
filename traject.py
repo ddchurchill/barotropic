@@ -90,6 +90,7 @@ def euler( velocity, lat0, lon0, deltat, nt):
      input deltat - time step in seconds. 
     input nt - number of time steps to integrate over
     input velocity - the function that returns the u and v components of the wind
+    at the point specified by the argument.
 
     Returns:
     Trajectory object - linear arrays of length nt steps showing position of parcel
@@ -119,10 +120,10 @@ def euler( velocity, lat0, lon0, deltat, nt):
     return traj
 
 #
-def huen( wind, lat0, lon0, deltat, nt):
+def huen( wind_func, lat0, lon0, deltat, nt):
     """
     huen - compute trajectory integrating by huens method
-    input wind - method that returns the velocity at specified
+    input wind_func - method that returns the velocity at specified
      input latitude, longitude and time step. This function is variable, to accomodate
     test functions as well as for production wind data. 
     input lat0 - starting latitude of parcel
@@ -139,6 +140,7 @@ def huen( wind, lat0, lon0, deltat, nt):
 
 #    traj_lon = [lon0]
 #    traj_lat = [lat0]
+    print("huen: lat, lon, deltat, nt:", lat0, lon0, deltat, nt)
     traj = Trajectory(lat0, lon0)
 #
 # repeat for each time step
@@ -147,7 +149,10 @@ def huen( wind, lat0, lon0, deltat, nt):
     for t in range(0, nt): 
 
         # get the wind components at the current lat, lon, and time step
-        vector = wind(traj.last_lat(), traj.last_lon(), t)
+        print("huen lat, lon, time:", traj.last_lat(), traj.last_lon(), t)
+        vector = wind_func(traj.last_lat(), traj.last_lon(), t)
+        if vector is np.nan:
+            break
         u = vector.u
         v = vector.v
 
@@ -164,7 +169,7 @@ def huen( wind, lat0, lon0, deltat, nt):
         # get updated wind vector at updated longitude and latitude
         # and at the next time step.
         
-        next_wind = wind(euler_lat, euler_lon, t+1)
+        next_wind = wind_func(euler_lat, euler_lon, t+1)
 
         if next_wind is None: # no wind found -- lat & lon are out of bounds
             break;

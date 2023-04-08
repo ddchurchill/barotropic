@@ -1,8 +1,28 @@
+import cmath # used for complex numbers - storing wind vectors
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
+import scipy.interpolate
+from velocity import Velocity as vel
+from trajectory import Trajectory 
+from traject import euler
+from traject import huen
+
 #
-# perform one step of Huen's integration
+# define the function that returns the wind vector at given lat and lon and time step,
+# as called by the euler() or huen() integration methods
+def model_wind(lat, lon, time):
+
+#
+    # the interpolators are created in the main program, prior to calling this method
+#    print("model_wind lat lon:", lat, lon)
+    new_wind = wind_interpolator((lat,lon))
+#    print("model_wind new wind:", new_wind)
+    if new_wind is np.nan:
+        return np.nan
+    new_u = new_wind.real
+    new_v = new_wind.imag
+    return vel(new_u, new_v)  # this is the wind vector interpolated to the point
 #
 
 gravity = 9.81 # m/s/s
@@ -30,18 +50,21 @@ lambda_rad = np.array(lon_lin * np.pi/180.)  # longitude in radians
 
 # Define the geopotential field with two ridges in the northern hemisphere and two ridges in the southern hemisphere
 # north pacific
-decay = 10
-r1 = np.exp(-((lat - 30) / decay) ** 2 - ((lon + 120) / decay) ** 2)
+def prescribe_z(lon,lat):
+    decay = 10
+    r1 = np.exp(-((lat - 30) / decay) ** 2 - ((lon + 120) / decay) ** 2)
 
-r2 = np.exp(-((lat + 30) / decay) ** 2 - ((lon + 120) / decay) ** 2)
-# north atlantic low
-r3 = - np.exp(-((lat - 30) / decay) ** 2 - ((lon + 80) / decay) ** 2)
-r4 = np.exp(-((lat + 30) / decay) ** 2 - ((lon + 10) / decay) ** 2)
-
-#geopot = ((r1 + r2 + r3 + r4) * 100 + 5000) * gravity
-geopot = ((r1 + r3) * 100 + 5000) * gravity
+#    r2 = np.exp(-((lat + 30) / decay) ** 2 - ((lon + 120) / decay) ** 2)
+    # north atlantic low
+    r3 = - np.exp(-((lat - 30) / decay) ** 2 - ((lon + 80) / decay) ** 2)
+#    r4 = np.exp(-((lat + 30) / decay) ** 2 - ((lon + 10) / decay) ** 2)
 
 
+    return ((r1 + r3) * 100 + 5000) * gravity
+
+
+
+def prescribe_winds():
 # Compute the geostrophic winds
 # This works
 #dzdx = np.gradient(geopot, axis=1) / np.gradient(lon * np.pi / 180, axis=1)
@@ -50,39 +73,43 @@ geopot = ((r1 + r3) * 100 + 5000) * gravity
 #lon_grad = np.gradient(lon_lin* np.pi/180) # 1-D array longitudes
 
 
-deltay = np.pi/180./earth_radius
-deltax = np.pi/180./earth_radius # wrong - needs cos phi
-lat_grad = np.gradient(lat * np.pi / 180)
-dzdy = np.gradient(geopot, axis=0) / np.gradient(lat * np.pi / 180, axis=0)
-#
-#
-# calculate dzdy using constant difference argument of 1 deg resolution
-#
-dzdy = np.gradient(geopot,grid_spacing_rad, axis=0) 
+    deltay = np.pi/180./earth_radius
+    deltax = np.pi/180./earth_radius # wrong - needs cos phi
+    lat_grad = np.gradient(lat * np.pi / 180)
+    dzdy = np.gradient(geopot, axis=0) / np.gradient(lat * np.pi / 180, axis=0)
+    #
+    #
+    # calculate dzdy using constant difference argument of 1 deg resolution
+    #
+    dzdy = np.gradient(geopot,grid_spacing_rad, axis=0) 
 
-f = 2 * np.pi / 86400 * np.sin(lat * np.pi / 180)
+    f = 2 * np.pi / 86400 * np.sin(lat * np.pi / 180)
 
-#
-#
-# dzdx is change of phi with respect to lambda
-#
-dzdx = np.gradient(geopot, grid_spacing_rad, axis=1)
+    #
+    #
+    # dzdx is change of phi with respect to lambda
+    #
+    dzdx = np.gradient(geopot, grid_spacing_rad, axis=1)
 
-#dzdmu = np.gradient(geopot, dmu, axis=0)
-ug = - dzdy / (f* earth_radius)
-vg = dzdx/ (f * earth_radius * np.cos(lat * np.pi/180)) 
+    ug = - dzdy / (f* earth_radius)
+    vg = dzdx/ (f * earth_radius * np.cos(lat * np.pi/180)) 
 
-# compute geostrophic wind speed
-geostrophic_wind_speed = np.sqrt(ug**2 + vg**2)
+    wind_vector = np.vectorize(complex)(ug, vg)
+
+    #
+    return wind_vector
 #
-data_range = np.ptp(geostrophic_wind_speed)
-print("Range:", data_range)
-mean = np.mean(geostrophic_wind_speed)
-print("Mean speed:", mean)
-maxspeed = np.max(geostrophic_wind_speed)
-print("max speed:", maxspeed)
+# generate geopotential field on the lat lon grid
+#
+geopot = prescribe_z(lon,lat)
 
-# Create a new figure
+winds = prescribe_winds()
+wsize =winds.shape
+print("Winds array size: ", wsize)
+print("Lon array: ", lon_lin.shape)
+print("lat array: ", lat_lin.shape)
+
+## Create a new figure
 fig = plt.figure(figsize=(12, 6))
 
 # Create a new map projection
@@ -97,6 +124,9 @@ x, y = m(lon, lat)
 m.contourf(x, y, geopot, cmap='jet', levels=50)
 
 # Draw the geostrophic wind vectors
+ug = winds.real
+vg = winds.imag
+
 m.quiver(x[::5, ::5], y[::5, ::5], ug[::5, ::5], vg[::5, ::5], scale=1000, color='white')
 
 # Add a colorbar and title
@@ -104,6 +134,13 @@ plt.colorbar(label='Geopotential')
 plt.title('Geopotential and Geostrophic Wind Vectors')
 plt.show()
 
+
+#define methods to interpolate u and v wind components
+
+#print("lon_lin:", lon_lin)
+#print("lat_lin:", lat_lin)
+wind_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
+                                                              winds, method='linear',bounds_error=False)
 
 
 f = 2 * np.pi / 86400 * np.sin(lat * np.pi / 180)
@@ -118,7 +155,7 @@ m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=mi
 m.drawcoastlines(linewidth=0.5, color='white')
 m.drawcountries(linewidth=0.5, color='white')
 
-m.contourf(x,y,geostrophic_wind_speed, cmap='jet',levels=50)
+m.contourf(x,y,np.abs(winds), cmap='jet',levels=50)
 # Draw the geostrophic# Show the plot
 # Add a colorbar and title
 plt.colorbar(label='Wind speed')
@@ -174,38 +211,32 @@ nt = 10 # number of time steps
 # set initial lat and lon of trajector
 #
 init_lat = 35.
-init_lon = -40.
+init_lon = -80.
 # Trajectory calculation using Euler's method
-lat_traj = np.zeros((npart, nt))  # Array to store latitude trajectory
-lon_traj = np.zeros((npart, nt))  # Array to store longitude trajectory
-lat_traj[:, 0] = init_lat
-lon_traj[:, 0] = init_lon
-coriolis = 2 * np.pi / 86400
-#
-# repeat for each time step
-#
-for t in range(1, nt):
-    # Compute Coriolis parameter at current latitude
-#    f_lat = coriolis * np.sin(np.radians(lat_traj[:, t-1]))
-    
-    # Compute velocity at previous location
-    u_prev = np.interp(lon_traj[:, t-1], lon, ug[np.argmin(np.abs(lat_traj[:, t-1] - lat))])
-    v_prev = np.interp(lon_traj[:, t-1], lon, vg[np.argmin(np.abs(lat_traj[:, t-1] - lat))])
-    
-    # Compute velocity at current location
-    u = u_prev
-    v = v_prev + f_lat * u_prev * dt
-    
-    # Compute new position using Euler's method
-    lat_traj[:, t] = lat_traj[:, t-1] + v * dt
-    lon_traj[:, t] = lon_traj[:, t-1] + u * dt
-
 # Plotting the trajectories
+deltat = 12 * 3600 # 12 hour time steps
+nsteps = 10 # number of times to integrate over
+parcel_trajectory = huen(model_wind, init_lat, init_lon, deltat, nsteps)
+
+
 plt.figure(figsize=(8, 6))
 plt.title('Particle Trajectories')
 plt.xlabel('Longitude (degrees)')
 plt.ylabel('Latitude (degrees)')
-for i in range(npart):
-    plt.plot(lon_traj[i], lat_traj[i], linewidth=2)
+lons = parcel_trajectory.lons()
+lats = parcel_trajectory.lats()
+print("Traj lats: ", lats)
+print("Traj lons: ", lons)
+#for i in range(npart):
+
+#    plt.plot(lons[i], lats[i], linewidth= 2)
+
+for i in range(len(lats)-1):
+        dx = lons[i+1] - lons[i]
+        dy = lats[i+1] - lats[i]
+        plt.arrow(lons[i], lats[i], dx, dy, \
+                  length_includes_head=True, head_length=1, head_width=1)
+
+
 plt.grid()
 plt.show()
