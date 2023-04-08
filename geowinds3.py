@@ -139,8 +139,7 @@ plt.show()
 
 #define methods to interpolate u and v wind components
 
-#print("lon_lin:", lon_lin)
-#print("lat_lin:", lat_lin)
+
 wind_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
                                                               winds, method='linear',bounds_error=False)
 
@@ -149,9 +148,6 @@ f = 2 * np.pi / 86400 * np.sin(lat * np.pi / 180)
 
 # Create a separate plot for the geostrophic wind speed
 fig2 = plt.figure(figsize=(12, 8))
-
-# Create a new map projection
-m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
 # Draw the continents and coastlines in white
 m.drawcoastlines(linewidth=0.5, color='white')
@@ -195,14 +191,13 @@ print("min relativevort: ", np.min(relative_vorticity))
       
 fig3 = plt.figure(figsize=(12,8))
 
-m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
 # Draw the continents and coastlines in white                                                                            
 m.drawcoastlines(linewidth=0.5, color='white')
 m.drawcountries(linewidth=0.5, color='white')
 
 m.contourf(x,y,relative_vorticity, cmap='jet',levels=50)
-# Add a colorbar and title                                                                                      m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
+# Add a colorbar and title                                                                                      
 m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
 m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
 plt.colorbar(label='vorticity')
@@ -229,8 +224,6 @@ parcel_trajectory = huen(model_wind, init_lat, init_lon, deltat, nsteps)
 
 fig4 = plt.figure(figsize=(12,8))
 
-m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
-
 # Draw the continents and coastlines in white                                                                            
 m.drawcoastlines(linewidth=0.5, color='black')
 m.drawcountries(linewidth=0.5, color='black')
@@ -238,15 +231,13 @@ m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
 m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
 
 plt.title('Particle Trajectories')
-plt.xlabel('Longitude (degrees)')
-plt.ylabel('Latitude (degrees)')
+#plt.xlabel('Longitude (degrees)')
+#plt.ylabel('Latitude (degrees)')
 lons = parcel_trajectory.lons()
 lats = parcel_trajectory.lats()
 print("Traj lats: ", lats)
 print("Traj lons: ", lons)
-#for i in range(npart):
 
-#    plt.plot(lons[i], lats[i], linewidth= 2)
 
 for i in range(len(lats)-1):
         dx = lons[i+1] - lons[i]
@@ -255,5 +246,4 @@ for i in range(len(lats)-1):
                   length_includes_head=True, head_length=1, head_width=1)
 
 
-#plt.grid()
 plt.show()
