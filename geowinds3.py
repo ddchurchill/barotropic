@@ -8,6 +8,37 @@ from trajectory import Trajectory
 from traject import euler
 from traject import huen
 
+def get_zeta(z, x, y):
+    """
+    get_zeta - compute relative vorticity from geopotential height, z, with input longitudes, x,
+
+    and input latitudes, y, 
+    Use manual centered differences.
+    Assuming grid spacing of 1 degree
+    1st dimension is 60 of latitude, 2nd dimension is longitude
+    This produces vorticity that agrees with the code using gradient calls to within 2%.
+    
+    """
+    d2zdx2 = np.zeros((60, 140))
+    d2zdy2 = np.zeros((60,140))
+    for i in range(2,138):
+        for j in range(2, 59) :
+            dlon = (x[j,i+1] - x[j,i-1])/2.
+#            print("dlon: ", dlon)
+            dx = earth_radius * np.cos(np.radians(y[j,i])) * np.radians( dlon)
+            d2zdx2[j,i] = (z[j,i+1] - 2*z[j,i] + z[j,i-1])/dx**2
+ 
+            dlat = (y[j+1,i] - y[j-1,i])/2.
+#            print("dlat:", dlat)
+            dy = earth_radius * np.radians(dlat)
+            d2zdy2[j,i] = (z[j+1,i] - 2*z[j,i] + z[j-1,i])/dy**2
+
+    zeta = d2zdx2 + d2zdy2
+
+    return zeta
+
+            
+     
 #
 # define the function that returns the wind vector at given lat and lon and time step,
 # as called by the euler() or huen() integration methods
@@ -101,8 +132,10 @@ def plot_trajectories(init_lons, init_lats, deltat, nsteps):
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
 
-
-    plt.title('Particle Trajectories')
+    hours = deltat/3600.  # number of hours in time step
+    elapsed = nsteps * hours
+    title_text = "Particle Trajectories, Time step = {:.1f} hours, No. steps: {:d}".format(hours, nsteps)
+    plt.title(title_text)
 # the colors of the trajectories cycle through the following list
     colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
     for j in range(len(init_lons)):
@@ -122,9 +155,9 @@ def plot_trajectories(init_lons, init_lats, deltat, nsteps):
             dx = lons[i+1] - lons[i]
             dy = lats[i+1] - lats[i]
             plt.arrow(lons[i], lats[i], dx, dy, \
-                      length_includes_head=True, head_length=0.5, head_width=0.5, color=line_color)
+                      length_includes_head=True, head_length=0.8, head_width=0.8, color=line_color)
 
-
+    plt.savefig('trajectories.png')
     plt.show()
 
 #
@@ -134,9 +167,6 @@ geopot = prescribe_z(lon,lat)
 
 winds = prescribe_winds()
 wsize =winds.shape
-#print("Winds array size: ", wsize)
-#print("Lon array: ", lon_lin.shape)
-#print("lat array: ", lat_lin.shape)
 
 ## Create a new figure
 fig = plt.figure(figsize=(12, 6))
@@ -156,6 +186,7 @@ m.contourf(x, y, geopot, cmap='jet', levels=50)
 ug = winds.real
 vg = winds.imag
 
+
 m.quiver(x[::5, ::5], y[::5, ::5], ug[::5, ::5], vg[::5, ::5], scale=1000, color='white')
 
 m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
@@ -163,6 +194,8 @@ m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
 # Add a colorbar and title
 plt.colorbar(label='Geopotential')
 plt.title('Geopotential and Geostrophic Wind Vectors')
+plt.savefig('winds.png')
+
 plt.show()
 
 
@@ -190,6 +223,7 @@ m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
 # Add a colorbar and title
 plt.colorbar(label='Wind speed')
 plt.title('Geostrophic Wind Speed')
+plt.savefig("windspeed.png")
 plt.show()
 
 #
@@ -201,7 +235,6 @@ coslat = np.cos(lat * np.pi/180)
 dvdx = np.gradient(vg, axis=0)/np.gradient(lon * np.pi/180, axis=1) / (earth_radius*coslat)
 dudy = np.gradient(ug,axis=1)/np.gradient(lon * np.pi/180, axis=1) / (earth_radius*coslat) 
 
-vorticity = dvdx - dudy  + f
 #
 # use laplacian to get vorticity
 #
@@ -215,6 +248,11 @@ denom = 1./(earth_radius *np.cos(lat * np.pi/180))**2
 relative_vorticity = d2zdphi2/earth_radius**2 + np.multiply(d2zdlambda2 ,denom)
 absolute_vorticity = relative_vorticity + f
 
+#
+# recompute vorticity manually using centered differences
+# results agree to within 2%.
+#
+#relative_vorticity = get_zeta(geopot,  lon, lat)
 print("max rel vort: ", np.max(relative_vorticity))
 print("min relativevort: ", np.min(relative_vorticity))
       
@@ -231,6 +269,7 @@ m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
 m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
 plt.colorbar(label='vorticity')
 plt.title('relative vorticity')
+plt.savefig("vorticity.png")
 plt.show()
 #
 npart = 10 # number of parcel trajectories
@@ -244,6 +283,6 @@ nsteps = 10 # number of times to integrate over
 #
 # specify the initial lat lon points for trajectories
 #
-init_lats =  [40,40,45,40,40, 30, 30, 25, 30, 30]
-init_lons = [-60, -80,-100, -120,-140, -60, -80,-100, -120,-140]
+init_lats =  [40,40,45,40,40, 30, 30, 25, 30, 30, 45, 45, 25]
+init_lons = [-60, -80,-100, -120,-140, -60, -80,-100, -120,-140, -120, -80, 80]
 plot_trajectories(init_lons,init_lats, deltat, nsteps)
