@@ -103,22 +103,26 @@ def plot_trajectories(init_lons, init_lats, deltat, nsteps):
 
 
     plt.title('Particle Trajectories')
-
+# the colors of the trajectories cycle through the following list
+    colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
     for j in range(len(init_lons)):
         parcel_trajectory = huen(model_wind, init_lats[j], init_lons[j], deltat, nsteps)
 
 
         lons = parcel_trajectory.lons()
         lats = parcel_trajectory.lats()
-        print("Traj lats: ", lats)
-        print("Traj lons: ", lons)
+#        print("Traj lats: ", lats)
+#        print("Traj lons: ", lons)
 
+#
 
+        color_index = j % len(colors)
+        line_color = colors[color_index]
         for i in range(len(lats)-1):
             dx = lons[i+1] - lons[i]
             dy = lats[i+1] - lats[i]
             plt.arrow(lons[i], lats[i], dx, dy, \
-                  length_includes_head=True, head_length=1, head_width=1)
+                      length_includes_head=True, head_length=0.5, head_width=0.5, color=line_color)
 
 
     plt.show()
@@ -237,5 +241,9 @@ nt = 10 # number of time steps
 deltat = 12 * 3600 # 12 hour time steps
 nsteps = 10 # number of times to integrate over
 
-
-plot_trajectories([-80,-120], [35,35], deltat, nsteps)
+#
+# specify the initial lat lon points for trajectories
+#
+init_lats =  [40,40,45,40,40, 30, 30, 25, 30, 30]
+init_lons = [-60, -80,-100, -120,-140, -60, -80,-100, -120,-140]
+plot_trajectories(init_lons,init_lats, deltat, nsteps)
