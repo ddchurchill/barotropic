@@ -83,11 +83,12 @@ lambda_rad = np.array(lon_lin * np.pi/180.)  # longitude in radians
 # north pacific
 def prescribe_z(lon,lat):
     decay = 10
-    r1 = np.exp(-((lat - 30) / decay) ** 2 - ((lon + 120) / decay) ** 2)
+    center_lat = 40
+    r1 = np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 120) / decay) ** 2)
 
 #    r2 = np.exp(-((lat + 30) / decay) ** 2 - ((lon + 120) / decay) ** 2)
     # north atlantic low
-    r3 = - np.exp(-((lat - 30) / decay) ** 2 - ((lon + 80) / decay) ** 2)
+    r3 = - np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 80) / decay) ** 2)
 #    r4 = np.exp(-((lat + 30) / decay) ** 2 - ((lon + 10) / decay) ** 2)
 
 
@@ -97,14 +98,15 @@ def prescribe_z(lon,lat):
 
 def prescribe_winds():
 # Compute the geostrophic winds
-    dzdy = np.gradient(geopot, axis=0) / np.gradient(lat * np.pi / 180, axis=0)
+    lat_rad = np.radians(lat)  # convert degrees to radians
+    dzdy = np.gradient(geopot, axis=0) / np.gradient(lat_rad , axis=0)
     #
     #
     # calculate dzdy using constant difference argument of 1 deg resolution
     #
     dzdy = np.gradient(geopot,grid_spacing_rad, axis=0) 
 
-    f = 2 * np.pi / 86400 * np.sin(lat * np.pi / 180)
+    f = 2 * np.pi / 86400 * np.sin(lat_rad)
 
     #
     #
@@ -113,7 +115,7 @@ def prescribe_winds():
     dzdx = np.gradient(geopot, grid_spacing_rad, axis=1)
 
     ug = - dzdy / (f* earth_radius)
-    vg = dzdx/ (f * earth_radius * np.cos(lat * np.pi/180)) 
+    vg = dzdx/ (f * earth_radius * np.cos(lat_rad)) 
 
     wind_vector = np.vectorize(complex)(ug, vg)
 
