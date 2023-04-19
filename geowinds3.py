@@ -7,6 +7,28 @@ from velocity import Velocity as vel
 from trajectory import Trajectory 
 from traject import euler
 from traject import huen
+ 
+def get_zeta1(geopot):
+    #
+    # use laplacian to get vorticity
+    #
+
+#    dzdphi = np.gradient(geopot,grid_spacing_rad, axis=0)
+ #   dzdlambda = np.gradient(geopot,grid_spacing_rad, axis=1)
+#    d2zdphi2 = np.gradient(dzdphi,grid_spacing_rad, axis=0)
+# try passing lat and lon as 1-D arrays.  This works correctly
+    # to within 1% of other methods. 
+    dzdphi = np.gradient(geopot,lat_lin, axis=0)
+    dzdlambda = np.gradient(geopot,lon_lin, axis=1)
+    d2zdphi2 = np.gradient(dzdphi,lat_lin, axis=0)
+    d2zdlambda2 = np.gradient(dzdlambda, lon_lin, axis=1)
+
+    denom = 1./(earth_radius *np.cos(np.radians(lat)))**2
+    relative_vorticity = d2zdphi2/earth_radius**2 + \
+        np.multiply(d2zdlambda2 ,denom)
+
+    print("get_zeta1, max vort:", np.max(relative_vorticity))
+    return relative_vorticity
 
 def get_zeta(z, x, y):
     """
@@ -34,7 +56,7 @@ def get_zeta(z, x, y):
             d2zdy2[j,i] = (z[j+1,i] - 2*z[j,i] + z[j-1,i])/dy**2
 
     zeta = d2zdx2 + d2zdy2
-
+    print("get zeta, max vort:", np.max(zeta))
     return zeta
 
             
@@ -78,6 +100,28 @@ lon_lin = np.linspace(min_lon, max_lon, nlon)
 lon, lat = np.meshgrid(lon_lin, lat_lin)
 phi_rad = np.array(lat_lin * np.pi/180.)  # latitude in radians
 lambda_rad = np.array(lon_lin * np.pi/180.)  # longitude in radians
+lat_rad = np.radians(lat)  # convert degrees to radians
+
+f = 2 * np.pi / 86400 * np.sin(lat_rad)
+
+import numpy as np
+
+def algebraic_derivatives(lon, lat, decay=10, center_lat=40, gravity=9.81):
+    r1 = np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 120) / decay) ** 2)
+    r3 = -np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 80) / decay) ** 2)
+
+    dr1_dlon = (2 * (lon + 120) / decay ** 2) * r1
+    dr1_dlat = (2 * (lat - center_lat) / decay ** 2) * r1
+
+    dr3_dlon = -(2 * (lon + 80) / decay ** 2) * r3
+    dr3_dlat = -(2 * (lat - center_lat) / decay ** 2) * r3
+
+    dz_dlon = (dr1_dlon + dr3_dlon) * 100 * gravity
+    dz_dlat = (dr1_dlat + dr3_dlat) * 100 * gravity
+
+    return dz_dlon, dz_dlat
+
+#print(f"dz/dlon: {dz_dlon}, dz/dlat: {dz_dlat}")
 
 # Define the geopotential field with two ridges in the northern hemisphere and two ridges in the southern hemisphere
 # north pacific
@@ -91,15 +135,29 @@ def prescribe_z(lon,lat):
     r3 = - np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 80) / decay) ** 2)
 #    r4 = np.exp(-((lat + 30) / decay) ** 2 - ((lon + 10) / decay) ** 2)
 
-
+    z = ((r1 + r3) * 100 + 5000) * gravity
+    print("Z shape:", z.shape)
     return ((r1 + r3) * 100 + 5000) * gravity
 
 
+def prescribe_winds1():
+#
+    # use the algrebaric derivative of the z field to get
+    # the winds
+    f = 2 * np.pi / 86400 * np.sin(lat_rad)
+    dzdx, dzdy = algebraic_derivatives(lon, lat)
+
+    ug = - dzdy / (f* earth_radius)
+    vg = dzdx/ (f * earth_radius * np.cos(lat_rad))
+
+    wind_vector = np.vectorize(complex)(ug, vg)
+    speed = np.sqrt(ug*ug + vg*vg)
+    print("prescribe winds1: max wind speed:", np.max(speed))
+    return wind_vector
 
 def prescribe_winds():
 # Compute the geostrophic winds
     lat_rad = np.radians(lat)  # convert degrees to radians
-    dzdy = np.gradient(geopot, axis=0) / np.gradient(lat_rad , axis=0)
     #
     #
     # calculate dzdy using constant difference argument of 1 deg resolution
@@ -116,6 +174,9 @@ def prescribe_winds():
 
     ug = - dzdy / (f* earth_radius)
     vg = dzdx/ (f * earth_radius * np.cos(lat_rad)) 
+
+    speed = np.sqrt(ug*ug + vg*vg)
+    print("prescribe winds: max wind speed:", np.max(speed))
 
     wind_vector = np.vectorize(complex)(ug, vg)
 
@@ -163,11 +224,11 @@ def plot_trajectories(init_lons, init_lats, deltat, nsteps):
     plt.show()
 
 #
-# generate geopotential field on the lat lon grid
+# generate geopotential field on the at lon grid
 #
 geopot = prescribe_z(lon,lat)
 
-winds = prescribe_winds()
+winds = prescribe_winds1()
 wsize =winds.shape
 
 ## Create a new figure
@@ -234,29 +295,17 @@ plt.show()
 
 
 coslat = np.cos(lat * np.pi/180)
-dvdx = np.gradient(vg, axis=0)/np.gradient(lon * np.pi/180, axis=1) / (earth_radius*coslat)
-dudy = np.gradient(ug,axis=1)/np.gradient(lon * np.pi/180, axis=1) / (earth_radius*coslat) 
+dvdx = np.gradient(vg, axis=1)/np.gradient(lon * np.pi/180, axis=1) / (earth_radius*coslat)
+dudy = np.gradient(ug,axis=0)/np.gradient(lon * np.pi/180, axis=1) / (earth_radius*coslat) 
 
-#
-# use laplacian to get vorticity
-#
 
-dzdphi = np.gradient(geopot,grid_spacing_rad, axis=0)
-dzdlambda = np.gradient(geopot,grid_spacing_rad, axis=1)
-d2zdphi2 = np.gradient(dzdphi,grid_spacing_rad, axis=0)
-d2zdlambda2 = np.gradient(dzdlambda, grid_spacing_rad, axis=1)
+relative_vorticity = get_zeta1(geopot)
 
-denom = 1./(earth_radius *np.cos(lat * np.pi/180))**2
-relative_vorticity = d2zdphi2/earth_radius**2 + np.multiply(d2zdlambda2 ,denom)
+relative_vorticity = get_zeta(geopot, lon, lat)
+
 absolute_vorticity = relative_vorticity + f
 
 #
-# recompute vorticity manually using centered differences
-# results agree to within 2%.
-#
-#relative_vorticity = get_zeta(geopot,  lon, lat)
-print("max rel vort: ", np.max(relative_vorticity))
-print("min relativevort: ", np.min(relative_vorticity))
       
 fig3 = plt.figure(figsize=(12,8))
 
