@@ -7,13 +7,13 @@ from velocity import Velocity as vel
 from trajectory import Trajectory 
 from traject import euler
 from traject import huen
-from diff import centered_diff 
+from diff import centered_diff
+from diff import centered_diff2
 # constants
 
 omega = 7.292e-5  # Earth's angular velocity in rad/s
 
 def wind_and_vorticity(lon_grid, lat_grid, z_field, lat_spacing, lon_spacing):
-    f = coriolis_parameter(lat_grid)
     
     # Compute the numerical derivatives of the height field
     dz_dlat, dz_dlon = np.gradient(z_field, lat_spacing, lon_spacing)
@@ -135,22 +135,50 @@ phi_rad = np.array(lat_lin * np.pi/180.)  # latitude in radians
 lambda_rad = np.array(lon_lin * np.pi/180.)  # longitude in radians
 lat_rad = np.radians(lat)  # convert degrees to radians
 lon_rad = np.radians(lon)
-f = 2 * np.pi / 86400 * np.sin(lat_rad)
-
+f = 2 * omega * np.sin(lat_rad)  # Coriolis parameter
 import numpy as np
 
 def algebraic_derivatives(lon, lat, decay=10, center_lat=40, gravity=9.81):
     r1 = np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 120) / decay) ** 2)
     r3 = -np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 80) / decay) ** 2)
+ 
+    dr1_dlon = -200 * gravity * (lon + 120) / decay ** 2 * r1
+    dr1_dlat = -200 * gravity * (lat - center_lat) / decay ** 2 * r1
 
-    dr1_dlon = (2 * (lon + 120) / decay ** 2) * r1
-    dr1_dlat = (2 * (lat - center_lat) / decay ** 2) * r1
+    dr3_dlon = - 200* gravity * (lon + 80) / decay ** 2 * r3
+    dr3_dlat = - 200* gravity * (lat - center_lat) / decay ** 2 * r3
 
-    dr3_dlon = -(2 * (lon + 80) / decay ** 2) * r3
-    dr3_dlat = -(2 * (lat - center_lat) / decay ** 2) * r3
+    dz_dlon = (dr1_dlon + dr3_dlon) 
+    dz_dlat = (dr1_dlat + dr3_dlat) 
 
-    dz_dlon = (dr1_dlon + dr3_dlon) * 100 * gravity
-    dz_dlat = (dr1_dlat + dr3_dlat) * 100 * gravity
+
+# code for this method below is from chatgpt
+# Assuming lat, lon, center_lat, decay, and gravity are defined
+    lat_rad = np.radians(lat)
+    center_lat_rad = np.radians(center_lat)
+    lon_rad = np.radians(lon)
+
+    
+    R = 6371e3  # Earth's radius in meters
+
+    r1 = np.exp(-((lat_rad - center_lat_rad) / decay) ** 2 - ((lon_rad + np.radians(120)) / decay) ** 2)
+    r3 = -np.exp(-((lat_rad - center_lat_rad) / decay) ** 2 - ((lon_rad + np.radians(80)) / decay) ** 2)
+
+# Partial derivative of z w.r.t lat (in radians)
+    dz_dlat_rad = (2 * (lat_rad - center_lat_rad) / decay**2 * (r1 - r3)) * 100 * gravity
+
+# Convert the derivative to degrees
+    dz_dlat = dz_dlat_rad # * (180 / np.pi)
+
+# Partial derivative of z w.r.t lon (in radians)
+    dz_dlon_rad = (2 * (lon_rad + np.radians(120)) / decay**2 * r1 - 2 * (lon_rad + np.radians(80)) / decay**2 * r3) * 100 * gravity
+
+# Convert the derivative to degrees
+    dz_dlon = dz_dlon_rad # * (180 / np.pi)
+
+# Compute the distance between points along the latitude and longitude lines
+    dlat_dist = R * np.radians(dz_dlat)
+    dlon_dist = R * np.cos(lat_rad) * np.radians(dz_dlon)
 
     return dz_dlon, dz_dlat
 
@@ -158,7 +186,7 @@ def algebraic_derivatives(lon, lat, decay=10, center_lat=40, gravity=9.81):
 
 # Define the geopotential field with two ridges in the northern hemisphere and two ridges in the southern hemisphere
 # north pacific
-def prescribe_z(lon,lat):
+def ridge_and_trough(lon,lat):
     decay = 10
     center_lat = 40
     r1 = np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 120) / decay) ** 2)
@@ -170,37 +198,87 @@ def prescribe_z(lon,lat):
 
     return ((r1 + r3) * 100 + 5000) * gravity
 
+def zonal_wind(lon,lat):  # make an east-west wind
+
+    # make a rsmp from 45 to 35 degrees
+
+# Define the number of longitude and latitude points
+    n_lon, n_lat = max_lon - min_lon , max_lat - min_lat
+    print("nlat nlon:", n_lat, n_lon)
+# Create a 2D array of zeros with the given dimensions
+    z = np.zeros((n_lat, n_lon))
+
+# Fill the height_data array with the desired height values
+    for i in range(n_lat):
+        lat = max_lat - i
+        if lat >= 45:
+            z[n_lat - i -1, :] = 5000
+        elif 35 <= lat < 45:
+            z[n_lat -i -1, :] = 5000 + (5500 - 5000) * (45 - lat) / (45 - 35)
+        else:
+            z[n_lat -i -1, :] = 5500
+    print("zonal wind: z shape: ", z.shape)
+    return z
+
+def north_wind(lon, lat):
+# Define the number of longitude and latitude points
+    n_lon, n_lat = max_lon - min_lon , max_lat - min_lat
+    print("north wind: nlat nlon:", n_lat, n_lon)
+# Create a 2D array of zeros with the given dimensions
+    z = np.zeros((n_lat, n_lon))
+    max_z = 5600
+    min_z = 5000
+    left_lon = -120
+    right_lon = -100
+# Fill the height_data array with the desired height values
+    for i in range(n_lon):
+        long = lon[0,i]
+        if long < -120:
+            z[:, i] = min_z
+        elif -120 <= long < -100:
+            z[:, i] = min_z + (max_z - min_z) * (long - left_lon) / (right_lon - left_lon)
+        else:
+            z[:, i] = max_z
+
+    print("north wind: z shape: ", z.shape)
+    return z
 
 def prescribe_winds1():
 #
     # use the algrebaric derivative of the z field to get
     # the winds
-    f = 2 * np.pi / 86400 * np.sin(lat_rad)
     dzdx, dzdy = algebraic_derivatives(lon, lat)
 
-    ug = - dzdy / (f* earth_radius)
-    vg = dzdx/ (f * earth_radius * np.cos(lat_rad))
-
+    ug = - dzdy / f /earth_radius
+    vg = dzdx/ f /earth_radius
     wind_vector = np.vectorize(complex)(ug, vg)
     speed = np.sqrt(ug*ug + vg*vg)
     print("prescribe winds1: max wind speed:", np.max(speed))
-    return wind_vector
+    x = np.cos(lat_rad)*earth_radius*np.cos(lon_rad)
+    y = earth_radius * lat_rad
+    dvdx, dydy = centered_diff(vg, x, y)
+    dudx, dudy = centered_diff(ug, x, y)
+    zeta = dvdx - dudy
+    print("prescribe winds2: max vort: ",np.max(zeta))
+    return wind_vector, zeta
 
 def prescribe_winds2():
     # use centered differences routine to get winds
     x = np.cos(lat_rad)*earth_radius*np.cos(lon_rad)
     y = earth_radius * lat_rad
-    dzdx , dzdy = centered_diff(geopot, x, y)
-    f = 2 * omega * np.sin(lat_rad)  # Coriolis parameter
+    dzdx , dzdy =  centered_diff(geopot, x, y)
     ug = -dzdy/f
     vg = dzdx /f
     wind_vector = np.vectorize(complex)(ug,vg)
     speed = np.sqrt(ug*ug + vg*vg)
     print("prescribe winds2: max wind speed:", np.max(speed))
-    dvdx, dydy = centered_diff(vg, x, y)
+    dvdx, dvdy = centered_diff(vg, x, y)
     dudx, dudy = centered_diff(ug, x, y)
     zeta = dvdx - dudy
+#    d2zdx2, d2zdy2  = centered_diff2(geopot, x, y)
+#    zeta = d2zdx2 + d2zdy2
     print("prescribe winds2: max vort: ",np.max(zeta))
+    print("prescribe winds2: min vort: ",np.min(zeta))
     return wind_vector, zeta
 
 def prescribe_winds():
@@ -211,8 +289,6 @@ def prescribe_winds():
     # calculate dzdy using constant difference argument of 1 deg resolution
     #
     dzdy = np.gradient(geopot,grid_spacing_rad, axis=0) 
-
-    f = 2 * np.pi / 86400 * np.sin(lat_rad)
 
     #
     #
@@ -274,7 +350,9 @@ def plot_trajectories(init_lons, init_lats, deltat, nsteps):
 #
 # generate geopotential field on the at lon grid
 #
-geopot = prescribe_z(lon,lat)
+geopot = ridge_and_trough(lon,lat)
+#geopot = zonal_wind(lon,lat)  # create a westerly wind only
+#geopot = north_wind(lon,lat)  # create a westerly wind only
 # Calculate the geostrophic wind components and vorticity
 #U_g, V_g, vorticity = wind_and_vorticity(lon_grid, lat_grid, \
 #                dz_dphi_algebraic, dz_dtheta_algebraic, lat_spacing, lon_spacing)
@@ -319,8 +397,6 @@ plt.show()
 wind_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
                                                               winds, method='linear',bounds_error=False)
 
-
-f = 2 * np.pi / 86400 * np.sin(lat * np.pi / 180)
 
 # Create a separate plot for the geostrophic wind speed
 fig2 = plt.figure(figsize=(12, 8))
