@@ -200,23 +200,24 @@ def ridge_and_trough(lon,lat):
 
 def zonal_wind(lon,lat):  # make an east-west wind
 
-    # make a rsmp from 45 to 35 degrees
+     # make a rsmp from 45 to 35 degrees
 
 # Define the number of longitude and latitude points
     n_lon, n_lat = max_lon - min_lon , max_lat - min_lat
     print("nlat nlon:", n_lat, n_lon)
 # Create a 2D array of zeros with the given dimensions
     z = np.zeros((n_lat, n_lon))
-
+    deltaz = 105.43 # meters height difference
+    lowz = 5000 # starting height in meters
 # Fill the height_data array with the desired height values
     for i in range(n_lat):
         lat = max_lat - i
         if lat >= 45:
-            z[n_lat - i -1, :] = 5000
+            z[n_lat - i -1, :] = lowz
         elif 35 <= lat < 45:
-            z[n_lat -i -1, :] = 5000 + (5500 - 5000) * (45 - lat) / (45 - 35)
+            z[n_lat -i -1, :] = lowz + deltaz * (45 - lat) / (45 - 35)
         else:
-            z[n_lat -i -1, :] = 5500
+            z[n_lat -i -1, :] = lowz + deltaz
     print("zonal wind: z shape: ", z.shape)
     return z
 
@@ -259,21 +260,28 @@ def prescribe_winds1():
     dvdx, dydy = centered_diff(vg, x, y)
     dudx, dudy = centered_diff(ug, x, y)
     zeta = dvdx - dudy
-    print("prescribe winds2: max vort: ",np.max(zeta))
+    print("prescribe winds1: max vort: ",np.max(zeta))
     return wind_vector, zeta
 
 def prescribe_winds2():
     # use centered differences routine to get winds
-    x = np.cos(lat_rad)*earth_radius*np.cos(lon_rad)
+    print("prescribe_winds2:")
+    x = np.cos(lat_rad)*earth_radius*lon_rad
     y = earth_radius * lat_rad
     dzdx , dzdy =  centered_diff(geopot, x, y)
-    ug = -dzdy/f
-    vg = dzdx /f
+    #
+    # test using gradient call again
+    dzdx = np.gradient(geopot, axis=1)/np.gradient(x, axis=1)
+    dzdy = np.gradient(geopot, axis=0)/np.gradient(y,axis=0)
+    ug = - gravity *dzdy/f
+    vg = gravity * dzdx /f
     wind_vector = np.vectorize(complex)(ug,vg)
     speed = np.sqrt(ug*ug + vg*vg)
     print("prescribe winds2: max wind speed:", np.max(speed))
     dvdx, dvdy = centered_diff(vg, x, y)
     dudx, dudy = centered_diff(ug, x, y)
+    dvdx = np.gradient(vg, axis=1)/np.gradient(x,axis=1)
+    dudy = np.gradient(ug, axis=0)/np.gradient(y,axis=0)
     zeta = dvdx - dudy
 #    d2zdx2, d2zdy2  = centered_diff2(geopot, x, y)
 #    zeta = d2zdx2 + d2zdy2
@@ -301,11 +309,18 @@ def prescribe_winds():
 
     speed = np.sqrt(ug*ug + vg*vg)
     print("prescribe winds: max wind speed:", np.max(speed))
-
+#
+# calculate vorticity
+#
+    d2zdx2 = np.gradient(dzdx, grid_spacing_rad, axis=1)
+    d2zdy2 = np.gradient(dzdy, grid_spacing_rad, axis=0)
+    zeta = d2zdx2 + d2zdy2
     wind_vector = np.vectorize(complex)(ug, vg)
 
     #
-    return wind_vector
+    print("prescribe winds: max vort:", np.max(zeta))
+
+    return wind_vector, zeta
 
 def plot_trajectories(init_lons, init_lats, deltat, nsteps):
 
@@ -351,13 +366,14 @@ def plot_trajectories(init_lons, init_lats, deltat, nsteps):
 # generate geopotential field on the at lon grid
 #
 geopot = ridge_and_trough(lon,lat)
-#geopot = zonal_wind(lon,lat)  # create a westerly wind only
+geopot = zonal_wind(lon,lat)  # create a westerly wind only
 #geopot = north_wind(lon,lat)  # create a westerly wind only
 # Calculate the geostrophic wind components and vorticity
 #U_g, V_g, vorticity = wind_and_vorticity(lon_grid, lat_grid, \
 #                dz_dphi_algebraic, dz_dtheta_algebraic, lat_spacing, lon_spacing)
 
-winds, relative_vorticity = prescribe_winds2()
+winds, relative_vorticity = prescribe_winds2() # works well
+#winds, relative_vorticity = prescribe_winds()
 wsize =winds.shape
 
 ## Create a new figure
