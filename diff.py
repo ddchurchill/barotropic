@@ -59,24 +59,6 @@ def centered_diff(z, x, y):
 #    dzdy[-1] = (z(y[-1]) - z(y[-2])) / (y[-1] - y[-2])
 
     return dzdx, dzdy
-#
-# second order centered difference
-#
-def centered_diff2(z,x,y):
-    print("Centered_diff2")
-    d2zdx2 = np.zeros_like(z)
-    d2zdy2 = np.zeros_like(z)
-    nrows, ncols = z.shape
-    for i in range(2, ncols -1):
-        for j in range(2, nrows -1) :
-            dx = (x[j,i+1] - x[j,i-1]) / 2.
-
-            dy = (y[j+1,i] -  y[j-1,i]) / 2.
-            d2zdx2[j,i] = (z[j,i+1] -2*z[j,i] + z[j,i-1])/dx**2
- 
-            d2zdy2[j,i] = (z[j+1,i] -2* z[j][i] + z[j-1,i])/dy**2
-
-    return d2zdx2, d2zdy2
 
 
            
