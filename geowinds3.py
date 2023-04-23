@@ -280,13 +280,19 @@ def prescribe_winds2():
     print("prescribe winds2: max wind speed:", np.max(speed))
     dvdx, dvdy = centered_diff(vg, x, y)
     dudx, dudy = centered_diff(ug, x, y)
+    zeta = dvdx - dudy
     dvdx = np.gradient(vg, axis=1)/np.gradient(x,axis=1)
     dudy = np.gradient(ug, axis=0)/np.gradient(y,axis=0)
-    zeta = dvdx - dudy
-#    d2zdx2, d2zdy2  = centered_diff2(geopot, x, y)
-#    zeta = d2zdx2 + d2zdy2
+    zeta_centered = dvdx - dudy
+    rms_diff = np.sqrt(np.mean(np.square(zeta - zeta_centered)))
+    rms_vort = np.sqrt(np.mean(np.square(zeta)))
+    d2zdx2, d2zdy2  = centered_diff2(geopot, x, y)
+    zeta = d2zdx2 + d2zdy2
     print("prescribe winds2: max vort: ",np.max(zeta))
     print("prescribe winds2: min vort: ",np.min(zeta))
+    print("prescribe winds2: rms vort:", rms_vort)
+    print("prescribe winds2: rms diff: ", rms_diff)
+    print("prescribe winds2: rel diff %:", rms_diff/rms_vort*100)
     return wind_vector, zeta
 
 def prescribe_winds():
