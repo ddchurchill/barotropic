@@ -348,6 +348,8 @@ winds, zeta, speed = prescribe_winds()
 relative_vorticity = zeta2 # use my differences code
 rms_speed = np.sqrt(np.mean(np.square(speed2)))
 rms_speed_diff = np.sqrt(np.mean(np.square(speed2 - speed)))
+print("max wind speed centered:", np.max(speed2))
+print("Max wind speed gradient:", np.max(speed))
 print("rms speed: ", rms_speed)
 print("rms speed diff:", rms_speed_diff)
 print("max vort: ",np.max(relative_vorticity))
