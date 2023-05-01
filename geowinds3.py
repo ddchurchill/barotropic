@@ -266,6 +266,8 @@ def baro_fcst(lon, lat):
     
     print("baro min height:", np.min(baro))
     print("baro max height:", np.max(baro))      
+    #flip the data around the latitude axis, as it is stored in the
+    # file upside down compared to my usage.
     baro = np.flip(baro,axis=0)
     return baro
 
@@ -319,7 +321,7 @@ def prescribe_winds():
     zeta = dvdx - dudy
     return wind_vector, zeta, speed
 
-def plot_trajectories(init_lons, init_lats, deltat, nsteps):
+def plot_trajectories(deltat, nsteps):
 
     # plot trajectories
     fig4 = plt.figure(figsize=(12,8))
@@ -337,23 +339,23 @@ def plot_trajectories(init_lons, init_lats, deltat, nsteps):
     plt.title(title_text)
 # the colors of the trajectories cycle through the following list
     colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
-    for j in range(len(init_lons)):
-        parcel_trajectory = huen(model_wind, init_lats[j], init_lons[j], deltat, nsteps)
+    lat_range = range(min_lat, max_lat +1, 10)
+    lon_range = range(min_lon, max_lon +1, 10)
+#    for j in range(len(init_lons)):
+    color_index = 0
+    for lat0 in lat_range:
+        for lon0 in lon_range:
+            parcel_trajectory = huen(model_wind, lat0, lon0, deltat, nsteps)
 
 
-        lons = parcel_trajectory.lons()
-        lats = parcel_trajectory.lats()
-#        print("Traj lats: ", lats)
-#        print("Traj lons: ", lons)
-
-#
-
-        color_index = j % len(colors)
-        line_color = colors[color_index]
-        for i in range(len(lats)-1):
-            dx = lons[i+1] - lons[i]
-            dy = lats[i+1] - lats[i]
-            plt.arrow(lons[i], lats[i], dx, dy, \
+            lons = parcel_trajectory.lons()
+            lats = parcel_trajectory.lats()
+            color_index = color_index + 1
+            line_color = colors[color_index % len(colors)]
+            for i in range(len(lats)-1):
+                dx = lons[i+1] - lons[i]
+                dy = lats[i+1] - lats[i]
+                plt.arrow(lons[i], lats[i], dx, dy, \
                       length_includes_head=True, head_length=0.8, head_width=0.8, color=line_color)
 
     plt.savefig('trajectories.png')
@@ -496,12 +498,12 @@ nt = 10 # number of time steps
 #
 
 # Plotting the trajectories
-deltat = 1 * 3600 # 12 hour time steps
+deltat = 12 * 3600 # 12 hour time steps
 nsteps = 10 # number of times to integrate over
 
 #
 # specify the initial lat lon points for trajectories
 #
-init_lats =  [40,40,45,40,40, 30, 30, 25, 30, 30, 45, 45, 25]
-init_lons = [-60, -80,-100, -120,-140, -60, -80,-100, -120,-140, -120, -80, 80]
-plot_trajectories(init_lons,init_lats, deltat, nsteps)
+# want every 10 degrees between 30 and 70 north
+
+plot_trajectories(deltat, nsteps)
