@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 import scipy.interpolate
+import xarray as xr
+
 from velocity import Velocity as vel
 from trajectory import Trajectory 
 from traject import euler
@@ -240,6 +242,33 @@ def north_wind(lon, lat):
     print("north wind: z shape: ", z.shape)
     return z
 
+# get barotropic forecast data from file
+def baro_fcst(lon, lat):
+# Create a 2D array of zeros with the given dimensions
+    left_lon = -120
+    right_lon = -100
+# Fill the height_data array with the desired height values
+# Open the NetCDF file
+    fc_ds_baro = xr.open_dataset("forecasts_baro-spharm_2007-04-15_2007-04-18.nc")
+    fc_ds_baro = fc_ds_baro.roll({"lon": 180})
+    step = fc_ds_baro.step[0]
+
+    for forecast_init_time in fc_ds_baro["time"]:
+        print("forecast time:", forecast_init_time)
+        baro = fc_ds_baro.sel({
+            "time": forecast_init_time,
+            "step": step,
+            "lat": slice(max_lat, min_lat),
+            "lon": slice(180+min_lon, 180+max_lon)
+        })['z500'].values
+    print("baro dims:", baro.shape)
+    print("baro type:", type(baro))
+    
+    print("baro min height:", np.min(baro))
+    print("baro max height:", np.max(baro))      
+    baro = np.flip(baro,axis=0)
+    return baro
+
 def prescribe_winds1():
 #
     # use the algrebaric derivative of the z field to get
@@ -333,7 +362,8 @@ def plot_trajectories(init_lons, init_lats, deltat, nsteps):
 #
 # generate geopotential field on the at lon grid
 #
-geopot = ridge_and_trough(lon,lat)
+geopot = baro_fcst(lon,lat)
+#geopot = ridge_and_trough(lon,lat)
 #geopot = zonal_wind(lon,lat)  # create a westerly wind only
 #geopot = north_wind(lon,lat)  # create a westerly wind only
 # Calculate the geostrophic wind components and vorticity
