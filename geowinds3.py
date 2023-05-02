@@ -310,7 +310,7 @@ def prescribe_winds():
     return wind_vector, zeta, speed
 def plot_winds(wind_data):
         ## Create a new figure
-    fig = plt.figure(figsize=(12, 6))
+    fig = plt.figure(figsize=(12, 8))
     
 
     # Draw the continents and coastlines
@@ -400,9 +400,9 @@ def plot_speed(wind_data):
 
 def plot_vort(vort):
         
-    coslat = np.cos(lat * np.pi/180)
+#    coslat = np.cos(lat * np.pi/180)
 
-    absolute_vorticity = relative_vorticity + f
+    absolute_vort = vort + f
 
     #
       
@@ -413,13 +413,13 @@ def plot_vort(vort):
 
     x, y = m(lon, lat)
 
-    m.contourf(x,y,vort, cmap='jet',levels=50)
+    m.contourf(x,y,absolute_vort, cmap='jet',levels=50)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
     plt.colorbar(label='vorticity')
-    plt.title('relative vorticity ' + dt_str)
-    plt.savefig("vorticity"+dt_str+".png")
+    plt.title('absolute vorticity ' + dt_str)
+    plt.savefig("abs_vort"+dt_str+".png")
     plt.show()
 
 
