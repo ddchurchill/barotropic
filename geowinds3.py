@@ -252,8 +252,6 @@ def baro_fcst():
             "lat": slice(max_lat, min_lat),
             "lon": slice(180+min_lon, 180+max_lon)
         })['z500'].values
-    print("baro dims:", baro.shape)
-    print("baro type:", type(baro))
     
     print("baro min height:", np.min(baro))
     print("baro max height:", np.max(baro))      
@@ -312,6 +310,35 @@ def prescribe_winds():
     dudy = np.gradient(ug, axis=0)/np.gradient(y,axis=0)
     zeta = dvdx - dudy
     return wind_vector, zeta, speed
+def plot_winds():
+        ## Create a new figure
+    fig = plt.figure(figsize=(12, 6))
+    
+
+    # Draw the continents and coastlines
+    m.drawcoastlines(linewidth=0.5,color='white')
+    m.drawcountries(linewidth=0.5, color='white')
+
+    # Draw the geopotential field
+    x, y = m(lon, lat)
+    m.contourf(x, y, geopot, cmap='jet', levels=50)
+    
+    # Draw the geostrophic wind vectors
+    ug = winds.real
+    vg = winds.imag
+    
+    
+    m.quiver(x[::5, ::5], y[::5, ::5], ug[::5, ::5], vg[::5, ::5], \
+         scale=2000, color='white')
+    
+    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
+    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+    # Add a colorbar and title
+    plt.colorbar(label='Geopotential')
+    plt.title('Geopotential and Geostrophic Wind Vectors')
+    plt.savefig('winds.png')
+
+    plt.show()
 
 def plot_trajectories(deltat, nsteps):
 
@@ -352,105 +379,16 @@ def plot_trajectories(deltat, nsteps):
 
     plt.savefig('trajectories.png')
     plt.show()
-
-# main program:
-# Open the NetCDF file
-fc_ds_baro = xr.open_dataset("forecasts_baro-spharm_2007-04-15_2007-04-18.nc")
-fc_ds_baro = fc_ds_baro.roll({"lon": 180})
-# Create a new map projection
-m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
-
-#
-# repeat for each step in the datafile
-#
-for step in fc_ds_baro.step:
-    print("Step ", step)
-    #
-
-
-    geopot = baro_fcst()  # read in height field from data file.
-
-    # generate geopotential field on the at lon grid
-    #
-    #geopot = ridge_and_trough(lon,lat)
-    #geopot = zonal_wind(lon,lat)  # create a westerly wind only
-    #geopot = north_wind(lon,lat)  # create a westerly wind only
-    # Calculate the geostrophic wind components and vorticity
-    #U_g, V_g, vorticity = wind_and_vorticity(lon_grid, lat_grid, \
-    # dz_dphi_algebraic, dz_dtheta_algebraic, lat_spacing, lon_spacing)
-
-    winds2, zeta2, speed2 = prescribe_winds2() # uses my differences code
-    #
-    # use the gradient calls
-    #
-    winds, zeta, speed = prescribe_winds() # numpy gradient method
-    relative_vorticity = zeta2 # use my differences code
-    rms_speed = np.sqrt(np.mean(np.square(speed2)))
-    rms_speed_diff = np.sqrt(np.mean(np.square(speed2 - speed)))
-    print("max wind speed centered:", np.max(speed2))
-    print("Max wind speed gradient:", np.max(speed))
-    print("rms speed: ", rms_speed)
-    print("rms speed diff:", rms_speed_diff)
-    print("max vort: ",np.max(relative_vorticity))
-    print("min vort: ",np.min(relative_vorticity))
-    rms_diff = np.sqrt( np.mean(np.square(zeta - zeta2)))
-    rms_vort = np.sqrt( np.mean(np.square(zeta)))
-    print("vort rms diff: ", rms_diff)
-    print("vort rms: ", rms_vort)
-    print("vort: rel diff %:", rms_diff/rms_vort*100)
-    #
-    # print wind speed and vorticity by latitude
-    #
-    #    print("lat, speed, vorticity")
-    #    for j in range(1,59):
-    #        print(lat[j,0], speed[j,0], zeta[j,0])
-    
-    wsize =winds.shape
-
-    ## Create a new figure
-    fig = plt.figure(figsize=(12, 6))
-    
-
-    # Draw the continents and coastlines
-    m.drawcoastlines(linewidth=0.5,color='white')
-    m.drawcountries(linewidth=0.5, color='white')
-
-    # Draw the geopotential field
-    x, y = m(lon, lat)
-    m.contourf(x, y, geopot, cmap='jet', levels=50)
-    
-    # Draw the geostrophic wind vectors
-    ug = winds.real
-    vg = winds.imag
-    
-    
-    m.quiver(x[::5, ::5], y[::5, ::5], ug[::5, ::5], vg[::5, ::5], \
-             scale=2000, color='white')
-    
-    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
-    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
-    # Add a colorbar and title
-    plt.colorbar(label='Geopotential')
-    plt.title('Geopotential and Geostrophic Wind Vectors')
-    plt.savefig('winds.png')
-
-    plt.show()
-
-
-    #define methods to interpolate u and v wind components
-    
-    
-    wind_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
-           winds, method='linear',bounds_error=False)
-
-
-    # Create a separate plot for the geostrophic wind speed
+def plot_speed():
+        # Create a separate plot for the geostrophic wind speed
     fig2 = plt.figure(figsize=(12, 8))
     
     # Draw the continents and coastlines in white
     m.drawcoastlines(linewidth=0.5, color='white')
     m.drawcountries(linewidth=0.5, color='white')
     
+    x, y = m(lon, lat)
+
     m.contourf(x,y,np.abs(winds), cmap='jet',levels=50)
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
@@ -461,12 +399,9 @@ for step in fc_ds_baro.step:
     plt.title('Geostrophic Wind Speed')
     plt.savefig("windspeed.png")
     plt.show()
-    
-    #
-    # plot the absolute voriticity
-    #
-    
-    
+
+def plot_vort():
+        
     coslat = np.cos(lat * np.pi/180)
 
     absolute_vorticity = relative_vorticity + f
@@ -478,6 +413,8 @@ for step in fc_ds_baro.step:
     m.drawcoastlines(linewidth=0.5, color='white')
     m.drawcountries(linewidth=0.5, color='white')
 
+    x, y = m(lon, lat)
+
     m.contourf(x,y,relative_vorticity, cmap='jet',levels=50)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
@@ -487,15 +424,73 @@ for step in fc_ds_baro.step:
     plt.savefig("vorticity.png")
     plt.show()
 
-    npart = 10 # number of parcel trajectories
-    nt = 10 # number of time steps
+
+# main program:
+# Open the NetCDF file
+fc_ds_baro = xr.open_dataset("forecasts_baro-spharm_2007-04-15_2007-04-18.nc")
+fc_ds_baro = fc_ds_baro.roll({"lon": 180})
+# Create a new map projection
+m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
+
+geopot = baro_fcst()  # read in height field from data file.
+
+    # generate geopotential field on the at lon grid
+    #
+    #geopot = ridge_and_trough(lon,lat)
+    #geopot = zonal_wind(lon,lat)  # create a westerly wind only
+    #geopot = north_wind(lon,lat)  # create a westerly wind only
+    # Calculate the geostrophic wind components and vorticity
+    #U_g, V_g, vorticity = wind_and_vorticity(lon_grid, lat_grid, \
+    # dz_dphi_algebraic, dz_dtheta_algebraic, lat_spacing, lon_spacing)
+
+winds2, zeta2, speed2 = prescribe_winds2() # uses my differences code
+    #
+    # use the gradient calls
+    #
+winds, zeta, speed = prescribe_winds() # numpy gradient method
+relative_vorticity = zeta2 # use my differences code
+rms_speed = np.sqrt(np.mean(np.square(speed2)))
+rms_speed_diff = np.sqrt(np.mean(np.square(speed2 - speed)))
+print("max wind speed centered:", np.max(speed2))
+print("Max wind speed gradient:", np.max(speed))
+print("rms speed: ", rms_speed)
+print("rms speed diff:", rms_speed_diff)
+print("max vort: ",np.max(relative_vorticity))
+print("min vort: ",np.min(relative_vorticity))
+rms_diff = np.sqrt( np.mean(np.square(zeta - zeta2)))
+rms_vort = np.sqrt( np.mean(np.square(zeta)))
+print("vort rms diff: ", rms_diff)
+print("vort rms: ", rms_vort)
+print("vort: rel diff %:", rms_diff/rms_vort*100)
+    #
+    # print wind speed and vorticity by latitude
+    #
+    #    print("lat, speed, vorticity")
+    #    for j in range(1,59):
+    #        print(lat[j,0], speed[j,0], zeta[j,0])
+
+plot_winds()
+
+
+#define methods to interpolate u and v wind components
+wind_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
+           winds, method='linear',bounds_error=False)
+
+plot_speed()
+    
+
+    #
+    # plot the absolute voriticity
+    #
+plot_vort()    
+
 
     # Plotting the trajectories
-    deltat = 12 * 3600 # 12 hour time steps
-    nsteps = 1 # number of times to integrate over
+deltat = 12 * 3600 # 12 hour time steps
+nsteps = 1 # number of times to integrate over
     #
     # specify the initial lat lon points for trajectories
     #
     # want every 10 degrees between 30 and 70 north
 
-    plot_trajectories(deltat, nsteps)
+plot_trajectories(deltat, nsteps)
