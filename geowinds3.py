@@ -241,17 +241,15 @@ def north_wind(lon, lat):
     return z
 
 # get barotropic forecast data from file
-def baro_fcst():
+def baro_fcst(forecast_init_time):
     step = fc_ds_baro.step[0]
-
-    for forecast_init_time in fc_ds_baro["time"]:
-        print("forecast time:", forecast_init_time)
-        baro = fc_ds_baro.sel({
-            "time": forecast_init_time,
-            "step": step,
-            "lat": slice(max_lat, min_lat),
-            "lon": slice(180+min_lon, 180+max_lon)
-        })['z500'].values
+    print("forecast time:", forecast_init_time)
+    baro = fc_ds_baro.sel({
+        "time": forecast_init_time,
+        "step": step,
+        "lat": slice(max_lat, min_lat),
+        "lon": slice(180+min_lon, 180+max_lon)
+    })['z500'].values
     
     print("baro min height:", np.min(baro))
     print("baro max height:", np.max(baro))      
@@ -397,7 +395,7 @@ def plot_speed(wind_data):
     # Add a colorbar and title
     plt.colorbar(label='Wind speed')
     plt.title('Geostrophic Wind Speed ' + dt_str)
-    plt.savefig("windspeed'+dt_str+'.png")
+    plt.savefig('windspeed' + dt_str + '.png')
     plt.show()
 
 def plot_vort(vort):
@@ -432,12 +430,15 @@ fc_ds_baro = fc_ds_baro.roll({"lon": 180})
 # Create a new map projection
 m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-time_stamp = fc_ds_baro['time'].values[0]
+for time_stamp in fc_ds_baro['time'].values:
+
+          
+
 #dt_str = np.datetime64.strftime(timestamp, '%Y-%m-%d %H:%M:%S')
 # set unit=D for days, =s for seconds
-dt_str = np.datetime_as_string(time_stamp, unit='s')
-print("time stamp ", dt_str)
-geopot = baro_fcst()  # read in height field from data file.
+    dt_str = np.datetime_as_string(time_stamp, unit='s')
+    print("time stamp ", dt_str)
+    geopot = baro_fcst(time_stamp)  # read in height field from data file.
 
     # generate geopotential field on the at lon grid
     #
@@ -448,25 +449,25 @@ geopot = baro_fcst()  # read in height field from data file.
     #U_g, V_g, vorticity = wind_and_vorticity(lon_grid, lat_grid, \
     # dz_dphi_algebraic, dz_dtheta_algebraic, lat_spacing, lon_spacing)
 
-winds2, zeta2, speed2 = prescribe_winds2() # uses my differences code
+    winds2, zeta2, speed2 = prescribe_winds2() # uses my differences code
     #
     # use the gradient calls
     #
-winds, zeta, speed = prescribe_winds() # numpy gradient method
-relative_vorticity = zeta2 # use my differences code
-rms_speed = np.sqrt(np.mean(np.square(speed2)))
-rms_speed_diff = np.sqrt(np.mean(np.square(speed2 - speed)))
-print("max wind speed centered:", np.max(speed2))
-print("Max wind speed gradient:", np.max(speed))
-print("rms speed: ", rms_speed)
-print("rms speed diff:", rms_speed_diff)
-print("max vort: ",np.max(relative_vorticity))
-print("min vort: ",np.min(relative_vorticity))
-rms_diff = np.sqrt( np.mean(np.square(zeta - zeta2)))
-rms_vort = np.sqrt( np.mean(np.square(zeta)))
-print("vort rms diff: ", rms_diff)
-print("vort rms: ", rms_vort)
-print("vort: rel diff %:", rms_diff/rms_vort*100)
+    winds, zeta, speed = prescribe_winds() # numpy gradient method
+    relative_vorticity = zeta2 # use my differences code
+    rms_speed = np.sqrt(np.mean(np.square(speed2)))
+    rms_speed_diff = np.sqrt(np.mean(np.square(speed2 - speed)))
+    print("max wind speed centered:", np.max(speed2))
+    print("Max wind speed gradient:", np.max(speed))
+    print("rms speed: ", rms_speed)
+    print("rms speed diff:", rms_speed_diff)
+    print("max vort: ",np.max(relative_vorticity))
+    print("min vort: ",np.min(relative_vorticity))
+    rms_diff = np.sqrt( np.mean(np.square(zeta - zeta2)))
+    rms_vort = np.sqrt( np.mean(np.square(zeta)))
+    print("vort rms diff: ", rms_diff)
+    print("vort rms: ", rms_vort)
+    print("vort: rel diff %:", rms_diff/rms_vort*100)
     #
     # print wind speed and vorticity by latitude
     #
@@ -474,26 +475,26 @@ print("vort: rel diff %:", rms_diff/rms_vort*100)
     #    for j in range(1,59):
     #        print(lat[j,0], speed[j,0], zeta[j,0])
 
-plot_winds(winds2) # winds2 is manual centered differences
+    plot_winds(winds2) # winds2 is manual centered differences
 
 
-#define methods to interpolate u and v wind components
-# this gets called by model_winds() which is called by
-# plot_trajectories()
-wind_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
-           winds2, method='linear',bounds_error=False)
+    #define methods to interpolate u and v wind components
+    # this gets called by model_winds() which is called by
+    # plot_trajectories()
+    wind_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
+            winds2, method='linear',bounds_error=False)
 
-plot_speed(winds2)
+    plot_speed(winds2)
     
 
     #
-    # plot the absolute voriticity
+    # plot the relative voriticity
     #
-plot_vort(zeta2)    
+    plot_vort(zeta2)    
 
 
     # Plotting the trajectories
-deltat = 12 * 3600 # 12 hour time steps
-nsteps = 1 # number of times to integrate over
+    deltat = 12 * 3600 # 12 hour time steps
+    nsteps = 1 # number of times to integrate over
     #
-plot_trajectories(deltat, nsteps)
+    plot_trajectories(deltat, nsteps)
