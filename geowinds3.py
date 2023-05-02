@@ -310,7 +310,7 @@ def prescribe_winds():
     dudy = np.gradient(ug, axis=0)/np.gradient(y,axis=0)
     zeta = dvdx - dudy
     return wind_vector, zeta, speed
-def plot_winds():
+def plot_winds(wind_data):
         ## Create a new figure
     fig = plt.figure(figsize=(12, 6))
     
@@ -324,8 +324,8 @@ def plot_winds():
     m.contourf(x, y, geopot, cmap='jet', levels=50)
     
     # Draw the geostrophic wind vectors
-    ug = winds.real
-    vg = winds.imag
+    ug = wind_data.real
+    vg = wind_data.imag
     
     
     m.quiver(x[::5, ::5], y[::5, ::5], ug[::5, ::5], vg[::5, ::5], \
@@ -336,7 +336,7 @@ def plot_winds():
     # Add a colorbar and title
     plt.colorbar(label='Geopotential')
     plt.title('Geopotential and Geostrophic Wind Vectors, ' + dt_str)
-    plt.savefig('winds.png')
+    plt.savefig('winds'+dt_str+'.png')
 
     plt.show()
 
@@ -377,9 +377,9 @@ def plot_trajectories(deltat, nsteps):
                 plt.arrow(lons[i], lats[i], dx, dy, \
                       length_includes_head=True, head_length=0.8, head_width=0.8, color=line_color)
 
-    plt.savefig('trajectories.png')
+    plt.savefig('trajectories'+dt_str+'.png')
     plt.show()
-def plot_speed():
+def plot_speed(wind_data):
         # Create a separate plot for the geostrophic wind speed
     fig2 = plt.figure(figsize=(12, 8))
     
@@ -389,7 +389,7 @@ def plot_speed():
     
     x, y = m(lon, lat)
 
-    m.contourf(x,y,np.abs(winds), cmap='jet',levels=50)
+    m.contourf(x,y,np.abs(wind_data), cmap='jet',levels=50)
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     
@@ -397,10 +397,10 @@ def plot_speed():
     # Add a colorbar and title
     plt.colorbar(label='Wind speed')
     plt.title('Geostrophic Wind Speed ' + dt_str)
-    plt.savefig("windspeed.png")
+    plt.savefig("windspeed'+dt_str+'.png")
     plt.show()
 
-def plot_vort():
+def plot_vort(vort):
         
     coslat = np.cos(lat * np.pi/180)
 
@@ -415,13 +415,13 @@ def plot_vort():
 
     x, y = m(lon, lat)
 
-    m.contourf(x,y,relative_vorticity, cmap='jet',levels=50)
+    m.contourf(x,y,vort, cmap='jet',levels=50)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
     plt.colorbar(label='vorticity')
     plt.title('relative vorticity ' + dt_str)
-    plt.savefig("vorticity.png")
+    plt.savefig("vorticity"+dt_str+".png")
     plt.show()
 
 
@@ -474,20 +474,22 @@ print("vort: rel diff %:", rms_diff/rms_vort*100)
     #    for j in range(1,59):
     #        print(lat[j,0], speed[j,0], zeta[j,0])
 
-plot_winds()
+plot_winds(winds2) # winds2 is manual centered differences
 
 
 #define methods to interpolate u and v wind components
+# this gets called by model_winds() which is called by
+# plot_trajectories()
 wind_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
-           winds, method='linear',bounds_error=False)
+           winds2, method='linear',bounds_error=False)
 
-plot_speed()
+plot_speed(winds2)
     
 
     #
     # plot the absolute voriticity
     #
-plot_vort()    
+plot_vort(zeta2)    
 
 
     # Plotting the trajectories
