@@ -335,7 +335,7 @@ def plot_winds():
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     # Add a colorbar and title
     plt.colorbar(label='Geopotential')
-    plt.title('Geopotential and Geostrophic Wind Vectors')
+    plt.title('Geopotential and Geostrophic Wind Vectors, ' + dt_str)
     plt.savefig('winds.png')
 
     plt.show()
@@ -354,8 +354,8 @@ def plot_trajectories(deltat, nsteps):
 
     hours = deltat/3600.  # number of hours in time step
     elapsed = nsteps * hours
-    title_text = "Particle Trajectories, Time step = {:.1f} hours, No. steps: {:d}".format(hours, nsteps)
-    plt.title(title_text)
+    title_text = "Trajectories, Time step = {:.1f} hours, No. steps: {:d}. ".format(hours, nsteps)
+    plt.title(title_text + dt_str)
 # the colors of the trajectories cycle through the following list
     colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
     lat_range = range(min_lat, max_lat +1, 10)
@@ -396,7 +396,7 @@ def plot_speed():
     # Draw the geostrophic# Show the plot
     # Add a colorbar and title
     plt.colorbar(label='Wind speed')
-    plt.title('Geostrophic Wind Speed')
+    plt.title('Geostrophic Wind Speed ' + dt_str)
     plt.savefig("windspeed.png")
     plt.show()
 
@@ -420,7 +420,7 @@ def plot_vort():
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
     plt.colorbar(label='vorticity')
-    plt.title('relative vorticity')
+    plt.title('relative vorticity ' + dt_str)
     plt.savefig("vorticity.png")
     plt.show()
 
@@ -432,6 +432,11 @@ fc_ds_baro = fc_ds_baro.roll({"lon": 180})
 # Create a new map projection
 m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
+time_stamp = fc_ds_baro['time'].values[0]
+#dt_str = np.datetime64.strftime(timestamp, '%Y-%m-%d %H:%M:%S')
+# set unit=D for days, =s for seconds
+dt_str = np.datetime_as_string(time_stamp, unit='s')
+print("time stamp ", dt_str)
 geopot = baro_fcst()  # read in height field from data file.
 
     # generate geopotential field on the at lon grid
@@ -489,8 +494,4 @@ plot_vort()
 deltat = 12 * 3600 # 12 hour time steps
 nsteps = 1 # number of times to integrate over
     #
-    # specify the initial lat lon points for trajectories
-    #
-    # want every 10 degrees between 30 and 70 north
-
 plot_trajectories(deltat, nsteps)
