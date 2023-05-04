@@ -1,12 +1,19 @@
 #
-# Trajectory contains two arrays of variable length, to store the latitude and longitude
-# of each point of a trajectory
+# Trajectory contains three arrays of, to store the latitude and longitude
+# of each point of a trajectory, and the vorticity at that point
 #
 # initialize it with a starting latititude and longitude (in degrees)
 class Trajectory:
+    def __init__(self):
+        self.lat = []
+        self.lon = []
+        self.vort = []
+        self.length = 0
     def __init__(self, lat0, lon0):
         self.lat = [lat0]
         self.lon = [lon0]
+        self.vort = [0]  # initially zero
+        self.length = 0
 #
 # last_lat() returns the last latitude value stored in the object.
 # This is referenced by the integration routine euler and huen

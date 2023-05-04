@@ -98,6 +98,7 @@ def get_zeta(z, x, y):
 #
 # define the function that returns the wind vector at given lat and lon and time step,
 # as called by the euler() or huen() integration methods
+# TODO: time is not used here yet.
 def model_wind(lat, lon, time):
 
 #
@@ -123,13 +124,14 @@ max_lon = -20
 min_lat = 10
 max_lat = 70
 nlat = max_lat - min_lat +1
-#nlat, nlon = 140, 360
+
 nlon = max_lon - min_lon +1
-#lat_lin = np.linspace(-70, 70, nlat)
+
 lat_lin = np.linspace(min_lat, max_lat, nlat)
+#print("lat_lin: ",lat_lin)
 mu = np.sin(lat_lin * np.pi/180.) # used in equation for geostrophic east-west wind
 dmu = np.gradient(mu) 
-#lon_lin = np.linspace(-180, 180, nlon)
+
 lon_lin = np.linspace(min_lon, max_lon, nlon)
 lon, lat = np.meshgrid(lon_lin, lat_lin)
 phi_rad = np.array(lat_lin * np.pi/180.)  # latitude in radians
@@ -137,7 +139,7 @@ lambda_rad = np.array(lon_lin * np.pi/180.)  # longitude in radians
 lat_rad = np.radians(lat)  # convert degrees to radians
 lon_rad = np.radians(lon)
 f = 2 * omega * np.sin(lat_rad)  # Coriolis parameter
-import numpy as np
+
 
 def algebraic_derivatives(lon, lat, decay=10, center_lat=40, gravity=9.81):
     r1 = np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 120) / decay) ** 2)
@@ -254,6 +256,21 @@ def baro_fcst(forecast_init_time):
     print("baro min height:", np.min(baro))
     print("baro max height:", np.max(baro))      
 
+    # check the lat and lon range
+    lats = fc_ds_baro.sel({
+        "time": forecast_init_time,
+        "step": step,
+        "lat": slice(max_lat, min_lat),
+        "lon": slice(180+min_lon, 180+max_lon)
+    })['lat'].values
+    lons = fc_ds_baro.sel({
+        "time": forecast_init_time,
+        "step": step,
+        "lat": slice(max_lat, min_lat),
+        "lon": slice(180+min_lon, 180+max_lon)
+    })['lon'].values
+#    print("Baro_fcst lats:", np.flip(lats))
+#    print("Baro_fcst lons:", np.flip(lons))
     #flip the data around the latitude axis, as it is stored in the
     # file upside down compared to my usage.
     baro = np.flip(baro,axis=0)
@@ -356,27 +373,53 @@ def plot_trajectories(deltat, nsteps):
     plt.title(title_text + dt_str)
 # the colors of the trajectories cycle through the following list
     colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
+#
+# compute trajectories every 10 degrees in the domain
     lat_range = range(min_lat, max_lat +1, 10)
     lon_range = range(min_lon, max_lon +1, 10)
-#    for j in range(len(init_lons)):
+    n_trajectories = len(lat_range) * len(lon_range)
     color_index = 0
+#
+# repeat for each latitude and longitude in range
+#
+# create an empty list of trajectories
+    trajectory_list = []
+
+    index = 0
     for lat0 in lat_range:
         for lon0 in lon_range:
-            parcel_trajectory = huen(model_wind, lat0, lon0, deltat, nsteps)
+            # compute the trajectory from the model winds
+            trajectory = \
+                huen(model_wind, lat0, lon0, deltat, nsteps)
+            # append the parcel to the trajectory list
+            trajectory_list.append(trajectory)
 
-
-            lons = parcel_trajectory.lons()
-            lats = parcel_trajectory.lats()
+            # here is where we compute the vorticity along the trajectory
+            # iterate through the trajectory
+            # TODO
+            lons = trajectory.lons()
+            lats = trajectory.lats()
+                
+            # plot the trajectory
             color_index = color_index + 1
             line_color = colors[color_index % len(colors)]
-            for i in range(len(lats)-1):
+            for i in range(trajectory.length):
                 dx = lons[i+1] - lons[i]
                 dy = lats[i+1] - lats[i]
                 plt.arrow(lons[i], lats[i], dx, dy, \
                       length_includes_head=True, head_length=0.8, head_width=0.8, color=line_color)
+                # determine the vorticity at this lat/lon point
+                vort = vort_interpolator((lats[i],lons[i]))
+                # append it to the vorticity array in the trajectory
+                trajectory.vort.append(vort)
+#
+# TODO: Analytics on changes in vorticity
+#
 
     plt.savefig('trajectories'+dt_str+'.png')
     plt.show()
+#
+
 def plot_speed(wind_data):
         # Create a separate plot for the geostrophic wind speed
     fig2 = plt.figure(figsize=(12, 8))
@@ -483,6 +526,10 @@ for time_stamp in fc_ds_baro['time'].values:
     # plot_trajectories()
     wind_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
             winds2, method='linear',bounds_error=False)
+    # create an interpolator for vorticity
+    absolute_vort = zeta2 + f
+    vort_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
+            absolute_vort, method='linear',bounds_error=False)
 
     plot_speed(winds2)
     
@@ -494,7 +541,7 @@ for time_stamp in fc_ds_baro['time'].values:
 
 
     # Plotting the trajectories
-    deltat = 12 * 3600 # 12 hour time steps
-    nsteps = 1 # number of times to integrate over
+    deltat = 1 * 3600 # 1 hour time steps
+    nsteps = 12 # number of times to integrate over
     #
     plot_trajectories(deltat, nsteps)

@@ -138,9 +138,6 @@ def huen( wind_func, lat0, lon0, deltat, nt):
 # initialize the trajectory with the input lat and lon
 #
 
-#    traj_lon = [lon0]
-#    traj_lat = [lat0]
-    print("huen: lat, lon, deltat, nt:", lat0, lon0, deltat, nt)
     traj = Trajectory(lat0, lon0)
 #
 # repeat for each time step
@@ -149,7 +146,7 @@ def huen( wind_func, lat0, lon0, deltat, nt):
     for t in range(0, nt): 
 
         # get the wind components at the current lat, lon, and time step
-        print("huen lat, lon, time:", traj.last_lat(), traj.last_lon(), t)
+#        print("huen lat, lon, time:", traj.last_lat(), traj.last_lon(), t)
         vector = wind_func(traj.last_lat(), traj.last_lon(), t)
         if vector is np.nan:
             break
@@ -188,6 +185,7 @@ def huen( wind_func, lat0, lon0, deltat, nt):
         # append the euler-updated lat and lon to the trajectory object
         traj.lon.append(euler_lon)
         traj.lat.append(euler_lat)
+        traj.length = traj.length + 1
 #
 # return the trajectory object
 #
