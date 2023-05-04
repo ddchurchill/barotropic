@@ -13,7 +13,6 @@ def centered_diff(z, x, y):
 	dzdx and dzdy
     
     """
-    print("centered diff: z shape:", z.shape)
     dzdx = np.zeros_like(z)
     dzdy = np.zeros_like(z)
     nrows, ncols = z.shape

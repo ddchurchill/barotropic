@@ -1,4 +1,5 @@
 import cmath # used for complex numbers - storing wind vectors
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
@@ -403,7 +404,7 @@ def plot_trajectories(deltat, nsteps):
             # plot the trajectory
             color_index = color_index + 1
             line_color = colors[color_index % len(colors)]
-            for i in range(trajectory.length):
+            for i in range(trajectory.length -1):
                 dx = lons[i+1] - lons[i]
                 dy = lats[i+1] - lats[i]
                 plt.arrow(lons[i], lats[i], dx, dy, \
@@ -414,8 +415,24 @@ def plot_trajectories(deltat, nsteps):
                 trajectory.vort.append(vort)
 #
 # TODO: Analytics on changes in vorticity
+# Try an RMS percentage change in the vorticity over all complete trajectories
 #
-
+    rel_change = [] 
+    for trajectory in trajectory_list:
+        v0 = trajectory.vort[0]
+        v1 = trajectory.vort[-1]
+        if( math.isnan(v0)):
+            continue
+        if( math.isnan(v1)):
+            continue
+        if( v0 < 1.e-10):
+            continue
+        d = (v1 - v0)/v0
+        rel_change.append(d*d)
+    mean = np.mean(rel_change)
+    sq_diff = np.sum( (rel_change - mean)**2)
+    rms = np.sqrt(sq_diff/len(rel_change))
+    print("RMS change in trajectory vorticity is ", rms)
     plt.savefig('trajectories'+dt_str+'.png')
     plt.show()
 #

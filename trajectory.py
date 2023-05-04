@@ -12,7 +12,7 @@ class Trajectory:
     def __init__(self, lat0, lon0):
         self.lat = [lat0]
         self.lon = [lon0]
-        self.vort = [0]  # initially zero
+        self.vort = []  # initially empty
         self.length = 0
 #
 # last_lat() returns the last latitude value stored in the object.
