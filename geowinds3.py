@@ -401,45 +401,53 @@ def plot_trajectories(deltat, nsteps):
 # plot the trajectories
 #
     plot_traject_arrows(trajectory_list)
-#            color_index = color_index + 1
-#            line_color = colors[color_index % len(colors)]
-#            for i in range(trajectory.length -1):
-#                dx = lons[i+1] - lons[i]
-#                dy = lats[i+1] - lats[i]
-#                plt.arrow(lons[i], lats[i], dx, dy, \
-#                      length_includes_head=True, head_length=0.8, head_width=0.8, color=line_color)
-                # determine the vorticity at this lat/lon point
-#                vort = vort_interpolator((lats[i],lons[i]))
-#                # append it to the vorticity array in the trajectory
-#                trajectory.vort.append(vort)
 #
-# TODO: Analytics on changes in vorticity
-# Try an RMS percentage change in the vorticity over all complete trajectories
-#
-#    rel_change = [] 
-#    for trajectory in trajectory_list:
-#        v0 = trajectory.vort[0]
-#        v1 = trajectory.vort[-1]
-#        if( math.isnan(v0)):
-#            continue
-#        if( math.isnan(v1)):
-#            continue
-#        if( v0 < 1.e-10):
-#            continue
-#        d = (v1 - v0)/v0
-#        rel_change.append(d*d)
-#    mean = np.mean(rel_change)
-#    sq_diff = np.sum( (rel_change - mean)**2)
-#    rms = np.sqrt(sq_diff/len(rel_change))
-#    print("RMS change in trajectory vorticity is ", rms)
     plt.savefig('trajectories'+dt_str+'.png')
     plt.show()
 #
+# interpolate the vorticity field into the trajectories
+#
+    vort_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
+            absolute_vort, method='linear',bounds_error=False)
 
+    for trajectory in trajectory_list:
+        for p in trajectory.points:
+            p.vort = vort_interpolator((p.lat,p.lon))
+# TODO: Analytics on changes in vorticity
+# Try an RMS percentage change in the vorticity over all complete trajectorie
+# Compare the vorticity at the start of a trajectory with its value at the
+# end.
+#
+    vort0 = []
+    vort1 = []
+    for trajectory in trajectory_list:
+        v0 = trajectory.points[0].vort
+        v1 = trajectory.points[-1].vort
+        if( math.isnan(v0)):
+            continue
+        if( math.isnan(v1)):
+            continue
+        if( v0 < 1.e-10):
+            continue
+        if( v1 < 1.e-10):
+            continue
+        vort0.append(v0)
+        vort1.append(v1)
+
+    
+    vort0 = np.array(vort0)
+    vort1 = np.array(vort1)
+    diff = (vort1 - vort0)**2
+    mean_diff = np.sum(diff) / len(vort1)
+    rms = np.sqrt(mean_diff)
+    print("RMS change in trajectory vorticity is ", rms)
+    rms0 = np.sqrt(np.sum(vort0* vort0)/len(vort0)        )
+    print("RMS of initial vorticity is ", rms0)
+    print("Relative change is ", rms/rms0*100, " percent")
 def plot_speed(wind_data):
         # Create a separate plot for the geostrophic wind speed
     fig2 = plt.figure(figsize=(12, 8))
-    
+     
     # Draw the continents and coastlines in white
     m.drawcoastlines(linewidth=0.5, color='white')
     m.drawcountries(linewidth=0.5, color='white')
@@ -525,9 +533,9 @@ for time_stamp in fc_ds_baro['time'].values:
     print("min vort: ",np.min(relative_vorticity))
     rms_diff = np.sqrt( np.mean(np.square(zeta - zeta2)))
     rms_vort = np.sqrt( np.mean(np.square(zeta)))
-    print("vort rms diff: ", rms_diff)
-    print("vort rms: ", rms_vort)
-    print("vort: rel diff %:", rms_diff/rms_vort*100)
+#    print("vort rms diff: ", rms_diff)
+#    print("vort rms: ", rms_vort)
+#    print("vort: rel diff %:", rms_diff/rms_vort*100)
     #
     # print wind speed and vorticity by latitude
     #
@@ -545,8 +553,6 @@ for time_stamp in fc_ds_baro['time'].values:
             winds2, method='linear',bounds_error=False)
     # create an interpolator for vorticity
     absolute_vort = zeta2 + f
-    vort_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
-            absolute_vort, method='linear',bounds_error=False)
 
     plot_speed(winds2)
     
