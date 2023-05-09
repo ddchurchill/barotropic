@@ -232,7 +232,12 @@ def baro_fcst(forecast_init_time):
     baro = np.flip(baro,axis=0)
 #
     return baro
-def prescribe_winds3():  # use mu = sin(theta) as north-south cooridinate
+def prescribe_winds3(): 
+    """
+    prescriber_winds3 ;
+    use mu = sin(theta) as north-south cooridinate
+    use gradient calls to diferentiate
+    """
     mu = np.sin(lat_rad) # 2-D array north-south component
     mu1 = np.sin(np.deg2rad(lat_lin)) # 1-D array
 
@@ -258,21 +263,17 @@ def prescribe_winds3():  # use mu = sin(theta) as north-south cooridinate
 #
 # compute geostrophic winds
 #
-    ug = -  dphidmu * np.cos(lat_rad)/EARTH_RADIUS/f
+    ug = -  dphidmu * np.cos(lat_rad)/EARTH_RADIUS /f
     vg =  dphidlambda /f
     wind_vector = np.vectorize(complex)(ug,vg)
     speed = np.sqrt(ug*ug + vg*vg)
-#
-# recompute vorticity from winds - this works
-#
- #   dvdx = np.gradient(vg, axis=1)/np.gradient(x,axis=1)
-#    dudy = np.gradient(ug, y[:,0], axis=0)#/np.gradient(y,axis=0)
-#    zeta = dvdx - dudy
     return wind_vector, zeta,speed
 
 def prescribe_winds2():
-    # use centered differences routine to get winds
-    print("prescribe_winds2:")
+    """
+    prescribe_winds2 - uses latitude as north-south cooridnate
+    uses manual centered differences to differentiate
+    """
     x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
     y = EARTH_RADIUS * lat_rad
     dzdx , dzdy =  centered_diff(geopot, x, y)
@@ -286,8 +287,13 @@ def prescribe_winds2():
     zeta = dvdx - dudy
     return wind_vector, zeta, speed
 
-def prescribe_winds():
-# Compute the geostrophic winds
+def prescribe_winds(): 
+    """
+    prescribe_winds()
+    uses latitude as north-south coordinate.
+    uses gradient calls for derivatives˜
+    """
+
     x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
     y = EARTH_RADIUS * lat_rad
     dzdx = np.gradient(geopot, axis=1)/np.gradient(x, axis=1)
