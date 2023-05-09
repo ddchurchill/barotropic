@@ -233,32 +233,30 @@ def baro_fcst(forecast_init_time):
 #
     return baro
 def prescribe_winds3():  # use mu = sin(theta) as north-south cooridinate
-    y = EARTH_RADIUS * lat_rad
-    x = np.cos(lat_rad) * EARTH_RADIUS * lon_rad
-    mu = np.sin(lat_rad) # used in equation for geostrophic east-west wind
-    mu1 = np.sin(np.deg2rad(lat_lin))
-    dmu = np.gradient(mu, axis=0)
+    mu = np.sin(lat_rad) # 2-D array north-south component
+    mu1 = np.sin(np.deg2rad(lat_lin)) # 1-D array
+
     phi = GRAVITY * geopot
-#    dphidmu = np.gradient(phi, axis=0)/dmu
     dphidmu = np.gradient(phi, mu1, axis=0)
     dphidmu1 = (1 - mu**2)*dphidmu
-#    d2phidmu2 = np.gradient(dphidmu1, mu1,  axis=0)
-    lambdax = np.cos(lat_rad)* EARTH_RADIUS * lon_rad
-    unused, d2phidmu2 = centered_diff(dphidmu1, x, mu)
-#
-# centered_diff gives same results as gradient
-#
+    d2phidmu2 = np.gradient(dphidmu1, mu1,  axis=0)
 
-#    y = EARTH_RADIUS * lat_rad
-    dlambdax = np.gradient(lambdax, axis=1)
-    dphidlambda = np.gradient(phi,axis=1)/dlambdax
-#    d2phidlambda2 = np.gradient(dphidlambda,axis=1)/dlambdax 
-    d2phidlambda2 = second(phi)/dlambdax**2
-#    d2phidlambda2, notused = centered_diff(dphidlambda,lambdax, y)
-    d2phi1 = d2phidlambda2 / ( 1 - mu**2) 
-    zeta =  (d2phidmu2 + d2phi1) / EARTH_RADIUS**2
+# east-west component 
 #
-# compute winds
+    lambdax = np.cos(lat_rad)* EARTH_RADIUS * lon_rad
+    dlambdax = np.gradient(lambdax, axis=1)
+# first derivative w/r longitude
+    dphidlambda = np.gradient(phi,axis=1)/dlambdax
+# 2nd derivative w/r longitude
+    d2phidlambda2 = np.gradient(dphidlambda,axis=1)/dlambdax 
+# scaled by 1/cosine squared
+    d2phi1 = d2phidlambda2 / ( 1 - mu**2) 
+#
+# Add north-south and east-west second derivatives
+# Note need to divide by f, otherwise too small by 10^-1!  5/9/23
+    zeta =  (d2phidmu2 + d2phi1) / EARTH_RADIUS**2 /f
+#
+# compute geostrophic winds
 #
     ug = -  dphidmu * np.cos(lat_rad)/EARTH_RADIUS/f
     vg =  dphidlambda /f
@@ -267,9 +265,9 @@ def prescribe_winds3():  # use mu = sin(theta) as north-south cooridinate
 #
 # recompute vorticity from winds - this works
 #
-    dvdx = np.gradient(vg, axis=1)/np.gradient(x,axis=1)
-    dudy = np.gradient(ug, y[:,0], axis=0)#/np.gradient(y,axis=0)
-    zeta = dvdx - dudy
+ #   dvdx = np.gradient(vg, axis=1)/np.gradient(x,axis=1)
+#    dudy = np.gradient(ug, y[:,0], axis=0)#/np.gradient(y,axis=0)
+#    zeta = dvdx - dudy
     return wind_vector, zeta,speed
 
 def prescribe_winds2():
