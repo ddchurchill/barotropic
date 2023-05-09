@@ -16,14 +16,15 @@ def centered_diff(z, x, y):
     dzdx = np.zeros_like(z)
     dzdy = np.zeros_like(z)
     nrows, ncols = z.shape
-    for i in range(1, ncols -1):
-        for j in range(1, nrows -1) :
+    for i in range(1, ncols-1):
+        for j in range(1, nrows-1) :
             dx1 = (x[j,i+1] - x[j,i])
             dzdx1 = (z[j,i+1] - z[j,i])/dx1
 
             dx2 = (x[j,i] - x[j,i-1])
             dzdx2 = (z[j,i] - z[j,i-1])/dx2
             dzdx[j,i] = (dzdx1 + dzdx2)/2.
+            dzdx[j,i] = (z[j,i+1] - z[j,i-1])/(x[j,i+1] - x[j,i-1])
             # compute y derivatice
             dy1 = (y[j+1,i] - y[j,i])
             dzdy1 = (z[j+1,i] - z[j,i])/dy1
@@ -31,16 +32,16 @@ def centered_diff(z, x, y):
             dy2 = (y[j,i] - y[j-1,i])
             dzdy2 = (z[j,i] - z[j-1,i])/dy2
             dzdy[j,i] = (dzdy1 + dzdy2)/2.
-
+            dzdy[j,i] = (z[j+1,i] - z[j-1,i])/(y[j+1,i] - y[j-1,i])
 #
 # do edges
 #
     for i in range(0,ncols-1):
-        dzdx[0,i] = (z[0,i+1] - z[0,i])/(x[0,i+1] - x[0,i])
-        dzdx[-1,i] = (z[-1,i+1] - z[-1,i])/(x[-1,i+1] - x[-1,i])
+        dzdy[0,i] = (z[1,i] - z[0,i])/(y[1,i] - y[0,i])
+        dzdy[-1,i] = (z[-1,i] - z[-2,i])/(y[-1,i] - y[-2,i])
     for j in range(0,nrows -1):
-        dzdy[j,0] = (z[j+1,0] - z[j,0])/(y[j+1,0] - y[j,0])
-        dzdy[j,-1] = (z[j+1,-1] - z[j,-1])/(y[j+1,-1] - y[j,-1])
+        dzdx[j,0] = (z[j,1] - z[j,0])/(x[j,1] - x[j,0])
+        dzdx[j,-1] = (z[j,-1] - z[j,-2])/(x[j,-1] - x[j,-2])
 #
 # now try the numpy way -- not working, shape mismatches.
 #
@@ -58,7 +59,16 @@ def centered_diff(z, x, y):
 #    dzdy[-1] = (z(y[-1]) - z(y[-2])) / (y[-1] - y[-2])
 
     return dzdx, dzdy
-
+#
+# second derivative of f with respect to dx
+def second(z):
+    d2zdx2 = np.zeros_like(z)
+    nrows, ncols = z.shape
+    for i in range(1, ncols-1):
+        for j in range(1, nrows-1) :
+            d2zdx2[j,i] = z[j,i+1] + z[j,i-1] - 2*z[j,i]
+    return d2zdx2
+            
 
            
 

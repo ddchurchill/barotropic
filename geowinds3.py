@@ -1,3 +1,4 @@
+from scipy.misc import derivative
 import cmath # used for complex numbers - storing wind vectors
 import math
 import numpy as np
@@ -12,7 +13,7 @@ from velocity import Velocity as vel
 from trajectory import Trajectory 
 from traject import euler
 from traject import huen
-from diff import centered_diff
+from diff import *
 from traject_constants import * 
 from plot_traject_arrows import *
 # constants
@@ -132,8 +133,6 @@ nlon = max_lon - min_lon +1
 
 lat_lin = np.linspace(min_lat, max_lat, nlat)
 #print("lat_lin: ",lat_lin)
-mu = np.sin(lat_lin * np.pi/180.) # used in equation for geostrophic east-west wind
-dmu = np.gradient(mu) 
 
 lon_lin = np.linspace(min_lon, max_lon, nlon)
 lon, lat = np.meshgrid(lon_lin, lat_lin)
@@ -143,52 +142,6 @@ lat_rad = np.radians(lat)  # convert degrees to radians
 lon_rad = np.radians(lon)
 f = 2 * OMEGA * np.sin(lat_rad)  # Coriolis parameter
 
-
-def algebraic_derivatives(lon, lat, decay=10, center_lat=40):
-    r1 = np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 120) / decay) ** 2)
-    r3 = -np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 80) / decay) ** 2)
- 
-    dr1_dlon = -200 * GRAVITY * (lon + 120) / decay ** 2 * r1
-    dr1_dlat = -200 * GRAVITY * (lat - center_lat) / decay ** 2 * r1
-
-    dr3_dlon = - 200* GRAVITY * (lon + 80) / decay ** 2 * r3
-    dr3_dlat = - 200* GRAVITY * (lat - center_lat) / decay ** 2 * r3
-
-    dz_dlon = (dr1_dlon + dr3_dlon) 
-    dz_dlat = (dr1_dlat + dr3_dlat) 
-
-
-# code for this method below is from chatgpt
-# Assuming lat, lon, center_lat, decay, and GRAVITY are defined
-    lat_rad = np.radians(lat)
-    center_lat_rad = np.radians(center_lat)
-    lon_rad = np.radians(lon)
-
-    
-    R = 6371e3  # Earth's radius in meters
-
-    r1 = np.exp(-((lat_rad - center_lat_rad) / decay) ** 2 - ((lon_rad + np.radians(120)) / decay) ** 2)
-    r3 = -np.exp(-((lat_rad - center_lat_rad) / decay) ** 2 - ((lon_rad + np.radians(80)) / decay) ** 2)
-
-# Partial derivative of z w.r.t lat (in radians)
-    dz_dlat_rad = (2 * (lat_rad - center_lat_rad) / decay**2 * (r1 - r3)) * 100 * GRAVITY
-
-# Convert the derivative to degrees
-    dz_dlat = dz_dlat_rad # * (180 / np.pi)
-
-# Partial derivative of z w.r.t lon (in radians)
-    dz_dlon_rad = (2 * (lon_rad + np.radians(120)) / decay**2 * r1 - 2 * (lon_rad + np.radians(80)) / decay**2 * r3) * 100 * GRAVITY
-
-# Convert the derivative to degrees
-    dz_dlon = dz_dlon_rad # * (180 / np.pi)
-
-# Compute the distance between points along the latitude and longitude lines
-    dlat_dist = R * np.radians(dz_dlat)
-    dlon_dist = R * np.cos(lat_rad) * np.radians(dz_dlon)
-
-    return dz_dlon, dz_dlat
-
-#print(f"dz/dlon: {dz_dlon}, dz/dlat: {dz_dlat}")
 
 # Define the geopotential field with two ridges in the northern hemisphere and two ridges in the southern hemisphere
 # north pacific
@@ -277,26 +230,47 @@ def baro_fcst(forecast_init_time):
     #flip the data around the latitude axis, as it is stored in the
     # file upside down compared to my usage.
     baro = np.flip(baro,axis=0)
-    return baro
-
-def prescribe_winds1():
 #
-    # use the algrebaric derivative of the z field to get
-    # the winds
-    dzdx, dzdy = algebraic_derivatives(lon, lat)
-
-    ug = - dzdy / f /EARTH_RADIUS
-    vg = dzdx/ f /EARTH_RADIUS
-    wind_vector = np.vectorize(complex)(ug, vg)
-    speed = np.sqrt(ug*ug + vg*vg)
-    print("prescribe winds1: max wind speed:", np.max(speed))
-    x = np.cos(lat_rad)*EARTH_RADIUS*np.cos(lon_rad)
+    return baro
+def prescribe_winds3():  # use mu = sin(theta) as north-south cooridinate
     y = EARTH_RADIUS * lat_rad
-    dvdx, dydy = centered_diff(vg, x, y)
-    dudx, dudy = centered_diff(ug, x, y)
+    x = np.cos(lat_rad) * EARTH_RADIUS * lon_rad
+    mu = np.sin(lat_rad) # used in equation for geostrophic east-west wind
+    mu1 = np.sin(np.deg2rad(lat_lin))
+    dmu = np.gradient(mu, axis=0)
+    phi = GRAVITY * geopot
+#    dphidmu = np.gradient(phi, axis=0)/dmu
+    dphidmu = np.gradient(phi, mu1, axis=0)
+    dphidmu1 = (1 - mu**2)*dphidmu
+#    d2phidmu2 = np.gradient(dphidmu1, mu1,  axis=0)
+    lambdax = np.cos(lat_rad)* EARTH_RADIUS * lon_rad
+    unused, d2phidmu2 = centered_diff(dphidmu1, x, mu)
+#
+# centered_diff gives same results as gradient
+#
+
+#    y = EARTH_RADIUS * lat_rad
+    dlambdax = np.gradient(lambdax, axis=1)
+    dphidlambda = np.gradient(phi,axis=1)/dlambdax
+#    d2phidlambda2 = np.gradient(dphidlambda,axis=1)/dlambdax 
+    d2phidlambda2 = second(phi)/dlambdax**2
+#    d2phidlambda2, notused = centered_diff(dphidlambda,lambdax, y)
+    d2phi1 = d2phidlambda2 / ( 1 - mu**2) 
+    zeta =  (d2phidmu2 + d2phi1) / EARTH_RADIUS**2
+#
+# compute winds
+#
+    ug = -  dphidmu * np.cos(lat_rad)/EARTH_RADIUS/f
+    vg =  dphidlambda /f
+    wind_vector = np.vectorize(complex)(ug,vg)
+    speed = np.sqrt(ug*ug + vg*vg)
+#
+# recompute vorticity from winds - this works
+#
+    dvdx = np.gradient(vg, axis=1)/np.gradient(x,axis=1)
+    dudy = np.gradient(ug, y[:,0], axis=0)#/np.gradient(y,axis=0)
     zeta = dvdx - dudy
-    print("prescribe winds1: max vort: ",np.max(zeta))
-    return wind_vector, zeta
+    return wind_vector, zeta,speed
 
 def prescribe_winds2():
     # use centered differences routine to get winds
@@ -327,6 +301,7 @@ def prescribe_winds():
     dvdx = np.gradient(vg, axis=1)/np.gradient(x,axis=1)
     dudy = np.gradient(ug, axis=0)/np.gradient(y,axis=0)
     zeta = dvdx - dudy
+#
     return wind_vector, zeta, speed
 def plot_winds(wind_data):
         ## Create a new figure
@@ -454,7 +429,8 @@ def plot_speed(wind_data):
     
     x, y = m(lon, lat)
 
-    m.contourf(x,y,np.abs(wind_data), cmap='jet',levels=30,vmin=0., vmax=150.)
+#    m.contourf(x,y,np.abs(wind_data), cmap='jet',levels=30,vmin=0., vmax=150.)
+    m.contourf(x,y,np.abs(wind_data), cmap='jet',levels=30)
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     
@@ -467,10 +443,8 @@ def plot_speed(wind_data):
 
 def plot_vort(vort):
         
-#    coslat = np.cos(lat * np.pi/180)
-
     absolute_vort = vort + f
-
+    print("plot vort: min abs vort:", np.min(absolute_vort))
     #
       
     fig3 = plt.figure(figsize=(12,8))
@@ -480,13 +454,36 @@ def plot_vort(vort):
 
     x, y = m(lon, lat)
 
-    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
+#    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
+    m.contourf(x,y,absolute_vort, cmap='jet',levels=30)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
     plt.colorbar(label='vorticity')
     plt.title('absolute vorticity ' + dt_str)
     plt.savefig("abs_vort"+dt_str+".png")
+    plt.show()
+
+def plot_rel_vort(vort): # plot relative voriticity
+        
+    fig3a = plt.figure(figsize=(12,8))
+    # Draw the continents and coastlines in white                                                                            
+    m.drawcoastlines(linewidth=0.5, color='white')
+    m.drawcountries(linewidth=0.5, color='white')
+
+    x, y = m(lon, lat)
+
+#    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
+# plot only the negative values of the relative vorticity to see where
+# they are. 
+#    vort[vort > .0] = 0
+    m.contourf(x,y,vort, cmap='jet',levels=30)
+    # Add a colorbar and title                                                                                      
+    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
+    plt.colorbar(label='vorticity')
+    plt.title('relative vorticity ' + dt_str)
+    plt.savefig("rel_vort"+dt_str+".png")
     plt.show()
 
 
@@ -518,21 +515,29 @@ for time_stamp in fc_ds_baro['time'].values:
     # dz_dphi_algebraic, dz_dtheta_algebraic, lat_spacing, lon_spacing)
 
     winds2, zeta2, speed2 = prescribe_winds2() # uses my differences code
+    winds3, zeta3, speed3 = prescribe_winds3() # test code
     #
     # use the gradient calls
     #
     winds, zeta, speed = prescribe_winds() # numpy gradient method
     relative_vorticity = zeta2 # use my differences code
-    rms_speed = np.sqrt(np.mean(np.square(speed2)))
-    rms_speed_diff = np.sqrt(np.mean(np.square(speed2 - speed)))
-    print("max wind speed centered:", np.max(speed2))
-    print("Max wind speed gradient:", np.max(speed))
-    print("rms speed: ", rms_speed)
-    print("rms speed diff:", rms_speed_diff)
-    print("max vort: ",np.max(relative_vorticity))
-    print("min vort: ",np.min(relative_vorticity))
-    rms_diff = np.sqrt( np.mean(np.square(zeta - zeta2)))
-    rms_vort = np.sqrt( np.mean(np.square(zeta)))
+
+
+# choose the computation we want to plot
+#    relative_vorticity = zeta3
+    winds = winds3
+    zeta = zeta3
+    speed = speed3
+#    rms_speed = np.sqrt(np.mean(np.square(speed)))
+#    rms_speed_diff = np.sqrt(np.mean(np.square(speed2 - speed)))
+#    print("max wind speed centered:", np.max(speed2))
+#    print("Max wind speed gradient:", np.max(speed))
+#    print("rms speed: ", rms_speed)
+#    print("rms speed diff:", rms_speed_diff)
+#    print("max vort: ",np.max(relative_vorticity))
+#    print("min vort: ",np.min(relative_vorticity))
+#    rms_diff = np.sqrt( np.mean(np.square(zeta - zeta2)))
+#    rms_vort = np.sqrt( np.mean(np.square(zeta)))
 #    print("vort rms diff: ", rms_diff)
 #    print("vort rms: ", rms_vort)
 #    print("vort: rel diff %:", rms_diff/rms_vort*100)
@@ -543,25 +548,25 @@ for time_stamp in fc_ds_baro['time'].values:
     #    for j in range(1,59):
     #        print(lat[j,0], speed[j,0], zeta[j,0])
 
-    plot_winds(winds2) # winds2 is manual centered differences
+    plot_winds(winds) 
 
 
     #define methods to interpolate u and v wind components
     # this gets called by model_winds() which is called by
     # plot_trajectories()
     wind_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, lon_lin),\
-            winds2, method='linear',bounds_error=False)
+            winds, method='linear',bounds_error=False)
     # create an interpolator for vorticity
-    absolute_vort = zeta2 + f
+    absolute_vort = zeta + f
 
-    plot_speed(winds2)
+    plot_speed(winds)
     
 
     #
     # plot the relative voriticity
     #
-    plot_vort(zeta2)    
-
+    plot_vort(zeta)
+    plot_rel_vort(zeta)
 
     # Plotting the trajectories
     deltat = 6 * 3600 # 1 hour time steps
