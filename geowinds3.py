@@ -459,12 +459,13 @@ def plot_vort(vort):
     x, y = m(lon, lat)
 
 #    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
+    absolute_vort[absolute_vort >0.] = 0 # filter out positive values
     m.contourf(x,y,absolute_vort, cmap='jet',levels=30)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
     plt.colorbar(label='vorticity')
-    plt.title('absolute vorticity ' + dt_str)
+    plt.title('absolute vorticity ( < 0)' + dt_str)
     plt.savefig("abs_vort"+dt_str+".png")
     plt.show()
 
@@ -480,7 +481,7 @@ def plot_rel_vort(vort): # plot relative voriticity
 #    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
 # plot only the negative values of the relative vorticity to see where
 # they are. 
-#    vort[vort > .0] = 0
+    vort[vort > .0] = 0
     m.contourf(x,y,vort, cmap='jet',levels=30)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
