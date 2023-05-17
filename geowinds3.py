@@ -363,6 +363,42 @@ def plot_winds(wind_data):
 
     plt.show()
 
+def plot_winds_v2(dataset, time_index):
+
+    time_stamp = dataset['time'][time_index].values
+    print("plot winds v23: time = ", time_stamp)
+    time_str = np.datetime_as_string(time_stamp, unit='s')
+    print(" time string:", time_str)
+        ## Create a new figure
+    fig = plt.figure(figsize=(12, 8))
+    
+
+    # Draw the continents and coastlines
+    m.drawcoastlines(linewidth=0.5,color='white')
+    m.drawcountries(linewidth=0.5, color='white')
+
+    # Draw the geopotential field
+    x, y = m(lon, lat)
+    heights = dataset['z500'][time_index].values
+    m.contourf(x, y, heights, cmap='jet', levels=30, vmin=5000., vmax=6000.)
+    
+    # Draw the geostrophic wind vectors
+    ug = dataset['wind_u'][time_index].values
+    vg = dataset['wind_v'][time_index].values
+    
+    
+    m.quiver(x[::5, ::5], y[::5, ::5], ug[::5, ::5], vg[::5, ::5], \
+         scale=2000, color='white')
+    
+    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
+    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+    # Add a colorbar and title
+    plt.colorbar(label='Geopotential')
+    plt.title('Geopotential and Geostrophic Wind Vectors, ' + time_str)
+#    plt.savefig('winds'+time_str+'.png')
+
+    plt.show()
+
 def plot_trajectories(dataset, deltat, nsteps):
  
     # plot trajectories
@@ -537,6 +573,10 @@ m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=mi
 time_periods = fc_ds_baro['time'].values
 data = xr.Dataset(
     {
+        "z500": (["time", "lat", "lon"], \
+                  np.zeros((len(time_periods), len(lat_lin), \
+                            len(lon_lin)))), \
+
         "wind_u": (["time", "lat", "lon"], \
                   np.zeros((len(time_periods), len(lat_lin), \
                             len(lon_lin)))), \
@@ -585,6 +625,7 @@ for time_index, time_stamp in enumerate(time_periods):
     speed = speed3
 #    vort_with_time = xr.DataArray(zeta).expand_dims(time=[time_stamp])
 #    fc_ds_baro['vorticity'] = vort_with_time
+    data['z500'][time_index] = geopot 
     data['wind_u'][time_index] = winds_u
     data['wind_v'][time_index] = winds_v
     data['vorticity'][time_index] = zeta
@@ -612,7 +653,7 @@ for time_index, time_stamp in enumerate(time_periods):
     #    for j in range(1,59):
     #        print(lat[j,0], speed[j,0], zeta[j,0])
 
-#    plot_winds(winds) 
+
 
 
     #define methods to interpolate u and v wind components
@@ -621,6 +662,7 @@ for time_index, time_stamp in enumerate(time_periods):
 
 print("Completed generatings winds and vorticity")
 
+plot_winds_v2(data,0) 
 #wind_interpolator = scipy.interpolate.RegularGridInterpolator((time_periods,#lat_lin, lon_lin),\
 #data['winds'], method='linear',bounds_error=False)
     # create an interpolator for vorticity
