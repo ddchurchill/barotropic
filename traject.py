@@ -121,7 +121,7 @@ def euler( velocity, lat0, lon0, deltat, nt):
 
 #
 def huen( wind_func, lat0, lon0, deltat, nt):
-    """
+    """ 
     huen - compute trajectory integrating by huens method
     input wind_func - method that returns the velocity at specified
      input latitude, longitude and time step. This function is variable, to accomodate
@@ -143,7 +143,7 @@ def huen( wind_func, lat0, lon0, deltat, nt):
 # repeat for each time step
 # but exit loop if the velocity was not found -- as when the lat and lon
 # are out of bounds 
-    for t in range(0, nt): 
+    for t in range(0, nt +1): 
 
         # get the wind components at the current lat, lon, and time step
 #        print("huen lat, lon, time:", traj.last_lat(), traj.last_lon(), t)

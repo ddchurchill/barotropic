@@ -61,6 +61,7 @@ def centered_diff(z, x, y):
     return dzdx, dzdy
 #
 # second derivative of f with respect to dx
+#
 def second(z):
     d2zdx2 = np.zeros_like(z)
     nrows, ncols = z.shape
@@ -68,7 +69,19 @@ def second(z):
         for j in range(1, nrows-1) :
             d2zdx2[j,i] = z[j,i+1] + z[j,i-1] - 2*z[j,i]
     return d2zdx2
+#
+# first derivative with respect to y
+#
+def ddy(z, y):
+    dzdy = np.zeros_like(z)
+    nrows, ncols = z.shape
+    for i in range(1, ncols-1):
+        for j in range(1, nrows-1) :
+            dy = y[j+1,i] - y[j-1,i]
+            dzdy[j,i] = (z[j+1,i] - z[j-1,i])/dy
             
+    return dzdy
+
 
            
 
