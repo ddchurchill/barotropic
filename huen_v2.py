@@ -55,12 +55,17 @@ def huen_v3(dataset, lat0, lon0, timestamps):
 #    for timeindex in range(0,len(timestamps) -1):
     for timeindex, timestamp in enumerate(timestamps[:-1]):
         next_time = timestamps[timeindex +1]
+#
+# compute elapsed time in seconds between requested timestamps
+#
         deltat = int((next_time - timestamp)/ np.timedelta64(1, 's'))
-#        wind = wind_model(lat1, lon1, timestamp)
-        wind_u = dataset['wind_u'].interp(time=timestamp, lat=lat0, \
-                              lon=lon0, method="linear").values
-        wind_v = dataset['wind_v'].interp(time=timestamp, lat=lat0, \
-                              lon=lon0, method="linear").values
+#
+# query the dstaset, interpolating in time and space
+#
+        wind_u = dataset['wind_u'].interp(time=timestamp, lat=lat1, \
+                              lon=lon1, method="linear").values
+        wind_v = dataset['wind_v'].interp(time=timestamp, lat=lat1, \
+                              lon=lon1, method="linear").values
 
 #        print("Wind is ", wind_u, " : ", wind_v)
 
@@ -82,6 +87,8 @@ def huen_v3(dataset, lat0, lon0, timestamps):
                               lon=lon_bar, method="linear").values
 
         if wind_u_bar is None: #  lat & lon are out of bounds          
+            break;
+        if wind_v_bar is None:
             break;
         # update the longitude with huen's method.
         # use the euler updated latitude to convert distance to degrees               
