@@ -44,6 +44,15 @@ def euler_v2(wind_model, lat0, lon0, deltat, nsteps):
 #
 # input the Xarray dataset, that can interpolated
 def huen_v3(dataset, lat0, lon0, timestamps):
+    """
+    input;
+         dataset
+         lat0 - starting latitude for trajectory
+         lon0 - starting longitude for trajectory
+         timestamps - list of times for nodes in the trajectory
+    output:
+         trajectory - list of trajectory nodes
+    """
     #
     # in thie version, pass a iist of timestamps in netcdf format
     #
@@ -52,7 +61,10 @@ def huen_v3(dataset, lat0, lon0, timestamps):
     lat1 = lat0
     lon1 = lon0  
 
-#    for timeindex in range(0,len(timestamps) -1):
+# iterate through the timestamps, noting the last one terminates the
+# the last node of the trajectory
+    uwind = dataset['wind_u']
+    vwind = dataset['wind_v']
     for timeindex, timestamp in enumerate(timestamps[:-1]):
         next_time = timestamps[timeindex +1]
 #
@@ -62,17 +74,15 @@ def huen_v3(dataset, lat0, lon0, timestamps):
 #
 # query the dstaset, interpolating in time and space
 #
-        wind_u = dataset['wind_u'].interp(time=timestamp, lat=lat1, \
+        wind_u = uwind.interp(time=timestamp, lat=lat1, \
                               lon=lon1, method="linear").values
-        wind_v = dataset['wind_v'].interp(time=timestamp, lat=lat1, \
+        wind_v = vwind.interp(time=timestamp, lat=lat1, \
                               lon=lon1, method="linear").values
 
-#        print("Wind is ", wind_u, " : ", wind_v)
+        # if no wind found at this location/time, break out of loop
+        if np.isnan(wind_u) or np.isnan(wind_v): 
+            break;
 
-        if wind_u is np.nan: # no wind found at this location/time
-            break;
-        if wind_v is np.nan:
-            break;
         denom = EARTH_RADIUS * np.cos(np.deg2rad(lat1))
         # lon_bar is the intermediate guess using euler method
         lon_bar  = lon1 + np.degrees(wind_u * deltat / denom)
@@ -81,15 +91,15 @@ def huen_v3(dataset, lat0, lon0, timestamps):
         lat_bar = lat1 + np.degrees(wind_v * deltat / EARTH_RADIUS )
         # get updated wind vector at updated longitude and latitude 
 
-        wind_u_bar = dataset['wind_u'].interp(time=next_time, lat=lat_bar, \
+        wind_u_bar = uwind.interp(time=next_time, lat=lat_bar, \
                               lon=lon_bar, method="linear").values
-        wind_v_bar = dataset['wind_v'].interp(time=next_time, lat=lat_bar, \
+        wind_v_bar = vwind.interp(time=next_time, lat=lat_bar, \
                               lon=lon_bar, method="linear").values
 
-        if wind_u_bar is None: #  lat & lon are out of bounds          
+        # again, if no wind found, break out of loop
+        if np.isnan(wind_u_bar) or np.isnan(wind_v_bar) : 
             break;
-        if wind_v_bar is None:
-            break;
+
         # update the longitude with huen's method.
         # use the euler updated latitude to convert distance to degrees               
         lon2 = lon1 + \
