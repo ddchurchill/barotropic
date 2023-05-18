@@ -420,9 +420,8 @@ def plot_trajectories(dataset, start_time, deltat, nsteps):
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
 
     hours = deltat/3600.  # number of hours in time step
+    subtitle_text = "Time step = " + str(hours) + " hours"
     elapsed = nsteps * hours
-    title_text = "Trajectories, Time step = {:.1f} hours, No. steps: {:d}. ".format(hours, nsteps)
-    plt.title(title_text + dt_str)
 # the colors of the trajectories cycle through the following list
     colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
 #
@@ -433,13 +432,21 @@ def plot_trajectories(dataset, start_time, deltat, nsteps):
     color_index = 0
 #
 # make a list of timestamps where we want nodes of the trajectories
+# add 1 to nsteps, to get as many segements as nsteps
 #
 # 
 
-    timestamps = np.arange(nsteps) * np.timedelta64(deltat, 's') \
+    timestamps = np.arange(nsteps +1) * np.timedelta64(deltat, 's') \
         + start_time
+    last_time =timestamps[-1]
+    start_str = np.datetime_as_string(start_time, unit='s')
+    last_str = np.datetime_as_string(last_time, unit='s')
     print("Requested times: ", timestamps)
-        
+
+    title_text = "Trajectories, " + start_str + " to " + last_str
+
+    plt.title(title_text)
+    plt.suptitle(subtitle_text)        
 #
 # repeat for each latitude and longitude in range
 #
@@ -460,7 +467,8 @@ def plot_trajectories(dataset, start_time, deltat, nsteps):
 #
     plot_traject_arrows(trajectory_list)
 #
-    plt.savefig('trajectories'+dt_str+'.png')
+    file_name = "traj_" + start_str + "-" + last_str + ".png"
+    plt.savefig(file_name)
     plt.show()
 #
 # interpolate the vorticity field into the trajectories
@@ -751,30 +759,14 @@ print("Completed generatings winds and vorticity")
 #plot_all_fields()
 
 # Plotting the trajectories
-deltat = 6 * 3600 # 6 hour time steps
-nsteps = 4 # number of times to integrate over
-#
-#    plot_trajectories(deltat, nsteps)
-#
-# end of time loop.  Winds and vorticity were computed for all 4 times
-#
-# Now make trajectories that span all the time periods
 #
 print("All times completed")
 
-field_names = list(fc_ds_baro.variables.keys())
-
-# Get the list of times in the dataset
-times = fc_ds_baro['time'].values
-
-# Print the list of fields and times
-print("Fields:")
-print(field_names)
-print("\nTimes:")
-print(times)
 
 # plot trajextoriea at given time periods
 start_time = data['time'][0].values
+deltat = 6 * 3600 # 6 hour time steps
+nsteps = 12 # number of times to integrate over
 
 plot_trajectories(data, start_time, deltat, nsteps)
 #vort_interp = fc_ds_baro['vorticity'].interp( \
