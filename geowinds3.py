@@ -398,10 +398,18 @@ def plot_winds_v2(dataset, time_index):
 #    plt.savefig('winds'+time_str+'.png')
 
     plt.show()
+#
 
-def plot_trajectories(dataset, deltat, nsteps):
- 
-    # plot trajectories
+
+def plot_trajectories(dataset, start_time, deltat, nsteps):
+    """
+    input:
+        dataset
+        start_time - time stamp of when to start trajectory
+        deltat - time in seconds between nodes in the trajectory
+        nsteps - the number of nodes to create
+    
+    """
     fig4 = plt.figure(figsize=(12,8))
 
 
@@ -424,10 +432,14 @@ def plot_trajectories(dataset, deltat, nsteps):
     n_trajectories = len(lat_range) * len(lon_range)
     color_index = 0
 #
-# and create nodesin the trajectories at these timestamps
-# Start with every 24 hours, for example
+# make a list of timestamps where we want nodes of the trajectories
+#
 # 
-    timestamps = fc_ds_baro["time"].values
+
+    timestamps = np.arange(nsteps) * np.timedelta64(deltat, 's') \
+        + start_time
+    print("Requested times: ", timestamps)
+        
 #
 # repeat for each latitude and longitude in range
 #
@@ -558,7 +570,7 @@ def plot_vort(vort):
     plt.colorbar(label='vorticity')
     time_stamp = dataset['time'][time_index].values
     time_str = np.datetime_as_string(time_stamp, unit='s')
-    plt.title('absolute vorticity ( < 0)' + time_str)
+    plt.title('absolute vorticity ' + time_str)
     plt.savefig("abs_vort"+time_str+".png")
     plt.show()
 
@@ -585,7 +597,7 @@ def plot_vort_v2(dataset, time_index):
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
     plt.colorbar(label='vorticity')
-    plt.title('absolute vorticity ( < 0)' + time_str)
+    plt.title('absolute vorticity ' + time_str)
     plt.savefig("abs_vort"+time_str+".png")
     plt.show()
 
@@ -633,6 +645,19 @@ def plot_rel_vort_v2(dataset, time_index):
     plt.title('relative vorticity ' + time_str)
     plt.savefig("rel_vort"+time_str+".png")
     plt.show()
+    
+def plot_all_fields():
+    # plot the fields for all time periods
+    for time_index, time_stamp in enumerate(time_periods):
+
+        plot_winds_v2(data,time_index) 
+        plot_speed_v2(data,time_index)
+        # plot the absolute  voriticity
+        plot_vort_v2(data,time_index)
+        # plot relative vorticity
+        plot_rel_vort_v2(data,time_index)
+
+# done making and saving plots.
 
 # datapint - get 
 
@@ -706,9 +731,7 @@ for time_index, time_stamp in enumerate(time_periods):
     data['wind_v'][time_index] = winds_v
     data['vorticity'][time_index] = zeta
     data['speed'][time_index] = speed    
-#    speed_with_time = xr.DataArray(speed).expand_dims(time=[time_stamp])
-#    dataset['speed'] = speed_with_time
-#    dataset['vorticity'] = 
+
 #    rms_speed = np.sqrt(np.mean(np.square(speed)))
 #    rms_speed_diff = np.sqrt(np.mean(np.square(speed2 - speed)))
 #    print("max wind speed centered:", np.max(speed2))
@@ -722,39 +745,13 @@ for time_index, time_stamp in enumerate(time_periods):
 #    print("vort rms diff: ", rms_diff)
 #    print("vort rms: ", rms_vort)
 #    print("vort: rel diff %:", rms_diff/rms_vort*100)
-    #
-    # print wind speed and vorticity by latitude
-    #
-    #    print("lat, speed, vorticity")
-    #    for j in range(1,59):
-    #        print(lat[j,0], speed[j,0], zeta[j,0])
-
-
-
-
-    #define methods to interpolate u and v wind components
-    # this gets called by model_winds() which is called by
-    # plot_trajectories()
 
 print("Completed generatings winds and vorticity")
 
-plot_winds_v2(data,0) 
-#wind_interpolator = scipy.interpolate.RegularGridInterpolator((time_periods,#lat_lin, lon_lin),\
-#data['winds'], method='linear',bounds_error=False)
-    # create an interpolator for vorticity
-#    absolute_vort = zeta + f
-
-plot_speed_v2(data,0)
-    
-
-
-# plot the absolute  voriticity
-plot_vort_v2(data,0)
-# plot relative vorticity
-plot_rel_vort_v2(data,0)
+#plot_all_fields()
 
 # Plotting the trajectories
-deltat = 6 * 3600 # 1 hour time steps
+deltat = 6 * 3600 # 6 hour time steps
 nsteps = 4 # number of times to integrate over
 #
 #    plot_trajectories(deltat, nsteps)
@@ -777,7 +774,9 @@ print("\nTimes:")
 print(times)
 
 # plot trajextoriea at given time periods
-plot_trajectories(data, deltat, nsteps)
+start_time = data['time'][0].values
+
+plot_trajectories(data, start_time, deltat, nsteps)
 #vort_interp = fc_ds_baro['vorticity'].interp( \
 #        lon=target_lon, \
 #        lat=target_lat, \
