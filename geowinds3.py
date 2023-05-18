@@ -512,6 +512,30 @@ def plot_speed(wind_data):
     plt.savefig('windspeed' + dt_str + '.png')
     plt.show()
 
+def plot_speed_v2(dataset, time_index):
+
+    fig2 = plt.figure(figsize=(12, 8))
+     
+    # Draw the continents and coastlines in white
+    m.drawcoastlines(linewidth=0.5, color='white')
+    m.drawcountries(linewidth=0.5, color='white')
+    
+    x, y = m(lon, lat)
+
+    speed = dataset['speed'][time_index].values
+    m.contourf(x,y,speed, cmap='jet',levels=30)
+    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
+    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+    
+    # Draw the geostrophic# Show the plot
+    # Add a colorbar and title
+    plt.colorbar(label='Wind speed')
+    time_stamp = dataset['time'][time_index].values
+    time_str = np.datetime_as_string(time_stamp, unit='s')
+    plt.title('Geostrophic Wind Speed ' + time_str)
+    plt.savefig('windspeed' + time_str + '.png')
+    plt.show()
+
 def plot_vort(vort):
         
     absolute_vort = vort + f
@@ -532,8 +556,37 @@ def plot_vort(vort):
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
     plt.colorbar(label='vorticity')
-    plt.title('absolute vorticity ( < 0)' + dt_str)
-    plt.savefig("abs_vort"+dt_str+".png")
+    time_stamp = dataset['time'][time_index].values
+    time_str = np.datetime_as_string(time_stamp, unit='s')
+    plt.title('absolute vorticity ( < 0)' + time_str)
+    plt.savefig("abs_vort"+time_str+".png")
+    plt.show()
+
+def plot_vort_v2(dataset, time_index):
+
+    time_stamp = dataset['time'][time_index].values
+    time_str = np.datetime_as_string(time_stamp, unit='s')
+    vort = dataset['vorticity'][time_index].values
+    absolute_vort = vort + f
+    print("plot vort: min abs vort:", np.min(absolute_vort))
+    #
+      
+    fig3 = plt.figure(figsize=(12,8))
+    # Draw the continents and coastlines in white                                                                            
+    m.drawcoastlines(linewidth=0.5, color='white')
+    m.drawcountries(linewidth=0.5, color='white')
+
+    x, y = m(lon, lat)
+
+#    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
+#    absolute_vort[absolute_vort >0.] = 0 # filter out positive values
+    m.contourf(x,y,absolute_vort, cmap='jet',levels=30)
+    # Add a colorbar and title                                                                                      
+    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
+    plt.colorbar(label='vorticity')
+    plt.title('absolute vorticity ( < 0)' + time_str)
+    plt.savefig("abs_vort"+time_str+".png")
     plt.show()
 
 def plot_rel_vort(vort): # plot relative voriticity
@@ -548,7 +601,7 @@ def plot_rel_vort(vort): # plot relative voriticity
 #    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
 # plot only the negative values of the relative vorticity to see where
 # they are. 
-    vort[vort > .0] = 0
+#    vort[vort > .0] = 0
     m.contourf(x,y,vort, cmap='jet',levels=30)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
@@ -557,7 +610,30 @@ def plot_rel_vort(vort): # plot relative voriticity
     plt.title('relative vorticity ' + dt_str)
     plt.savefig("rel_vort"+dt_str+".png")
     plt.show()
-#
+
+def plot_rel_vort_v2(dataset, time_index):
+
+        
+    time_stamp = dataset['time'][time_index].values
+    time_str = np.datetime_as_string(time_stamp, unit='s')
+    vort = dataset['vorticity'][time_index].values
+
+    fig3a = plt.figure(figsize=(12,8))
+    # Draw the continents and coastlines in white                                                                            
+    m.drawcoastlines(linewidth=0.5, color='white')
+    m.drawcountries(linewidth=0.5, color='white')
+
+    x, y = m(lon, lat)
+
+    m.contourf(x,y,vort, cmap='jet',levels=30)
+    # Add a colorbar and title                                                                                      
+    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
+    plt.colorbar(label='vorticity')
+    plt.title('relative vorticity ' + time_str)
+    plt.savefig("rel_vort"+time_str+".png")
+    plt.show()
+
 # datapint - get 
 
 
@@ -668,14 +744,14 @@ plot_winds_v2(data,0)
     # create an interpolator for vorticity
 #    absolute_vort = zeta + f
 
-#    plot_speed(winds)
+plot_speed_v2(data,0)
     
 
-    #
-    # plot the relative voriticity
-    #
-#    plot_vort(zeta)
-#    plot_rel_vort(zeta)
+
+# plot the absolute  voriticity
+plot_vort_v2(data,0)
+# plot relative vorticity
+plot_rel_vort_v2(data,0)
 
 # Plotting the trajectories
 deltat = 6 * 3600 # 1 hour time steps
