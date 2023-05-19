@@ -476,70 +476,6 @@ def plot_trajectories(trajectories, timestamps):
     file_name = "traj_" + start_str + "-" + last_str + ".png"
     plt.savefig(file_name)
     plt.show()
-#
-# interpolate vorticity into each node of each trajectory
-#
-def interp_vorticity(dataset, trajectory_list):
-#
-
-    for trajectory in trajectory_list:
-        for p in trajectory.points:
-            p.vort = dataset['abs_vorticity'].interp(lat=p.lat, lon=p.lon,
-                                                 time=p.timestamp)
-            
-# TODO: Analytics on changes in vorticity
-# Try an RMS percentage change in the vorticity over all complete trajectorie
-# Compare the vorticity at the start of a trajectory with its value at the
-# end.
-#
-#    vort0 = []
-#    vort1 = []
-#    for trajectory in trajectory_list:
-#        v0 = trajectory.points[0].vort
-#        v1 = trajectory.points[-1].vort
-#        if( math.isnan(v0)):
-#            continue
-#        if( math.isnan(v1)):
-#            continue
-#        if( v0 < 1.e-10):
-#            continue
-#        if( v1 < 1.e-10):
-#            continue
-#        vort0.append(v0)
-#        vort1.append(v1)
-#
-#    
-#    vort0 = np.array(vort0)
-#    vort1 = np.array(vort1)
-#    diff = (vort1 - vort0)**2
-#    mean_diff = np.sum(diff) / len(vort1)
-#    rms = np.sqrt(mean_diff)
-#    print("RMS change in trajectory vorticity is ", rms)
-#    rms0 = np.sqrt(np.sum(vort0* vort0)/len(vort0)        )
-#    print("RMS of initial vorticity is ", rms0)
-#    print("Relative change is ", rms/rms0*100, " percent")
-
-def plot_speed(wind_data):
-        # Create a separate plot for the geostrophic wind speed
-    fig2 = plt.figure(figsize=(12, 8))
-     
-    # Draw the continents and coastlines in white
-    m.drawcoastlines(linewidth=0.5, color='white')
-    m.drawcountries(linewidth=0.5, color='white')
-    
-    x, y = m(lon, lat)
-
-#    m.contourf(x,y,np.abs(wind_data), cmap='jet',levels=30,vmin=0., vmax=150.)
-    m.contourf(x,y,np.abs(wind_data), cmap='jet',levels=30)
-    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
-    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
-    
-    # Draw the geostrophic# Show the plot
-    # Add a colorbar and title
-    plt.colorbar(label='Wind speed')
-    plt.title('Geostrophic Wind Speed ' + dt_str)
-    plt.savefig('windspeed' + dt_str + '.png')
-    plt.show()
 
 def plot_speed_v2(dataset, time_index):
 
@@ -676,6 +612,76 @@ def plot_all_fields(dataset):
         plot_rel_vort_v2(data,time_index)
 
 # done making and saving plots.
+#
+# interpolate vorticity into each node of each trajectory
+#
+def interp_vorticity(dataset, trajectory_list):
+#
+
+    for trajectory in trajectory_list:
+        for p in trajectory.points:
+            p.vort = dataset['abs_vorticity'].interp(lat=p.lat, lon=p.lon,
+                                                 time=p.timestamp)
+            
+    print("Vorticities were added to trajectoriea")
+    return
+
+def plot_vort_timeline(trajectories):
+    """
+        plot the vorticity as function of time for  each trajectory
+    """
+
+    for trajectory in trajectories:
+        if trajectory.length == 0:
+            continue  # skip any empty trajectories
+        vort_list = []
+        for point in trajectory.points:
+            vort_list.append(point.vort)
+
+        plt.plot(vort_list,marker="o")
+        plt.xlabel('Time')
+        plt.ylabel('Vorticitye')
+        plt.ylim(-2.e-4, 2.e-4)
+        plt.xlim(0,11)
+        plt.title('Absolute vorticity vs time')
+
+        # Display the plot
+        plt.show()
+        
+
+    return # nothing 
+
+# TODO: Analytics on changes in vorticity
+# Try an RMS percentage change in the vorticity over all complete trajectorie
+# Compare the vorticity at the start of a trajectory with its value at the
+# end.
+#
+#    vort0 = []
+#    vort1 = []
+#    for trajectory in trajectory_list:
+#        v0 = trajectory.points[0].vort
+#        v1 = trajectory.points[-1].vort
+#        if( math.isnan(v0)):
+#            continue
+#        if( math.isnan(v1)):
+#            continue
+#        if( v0 < 1.e-10):
+#            continue
+#        if( v1 < 1.e-10):
+#            continue
+#        vort0.append(v0)
+#        vort1.append(v1)
+#
+#    
+#    vort0 = np.array(vort0)
+#    vort1 = np.array(vort1)
+#    diff = (vort1 - vort0)**2
+#    mean_diff = np.sum(diff) / len(vort1)
+#    rms = np.sqrt(mean_diff)
+#    print("RMS change in trajectory vorticity is ", rms)
+#    rms0 = np.sqrt(np.sum(vort0* vort0)/len(vort0)        )
+#    print("RMS of initial vorticity is ", rms0)
+#    print("Relative change is ", rms/rms0*100, " percent")
 
 # main program:
 # Read winds and vorticity from NetCDF file if it exists. Else create it.
@@ -777,9 +783,9 @@ trajectories, timestamps = compute_trajectories(data, start_time, deltat, nsteps
 
 
 plot_trajectories(trajectories, timestamps)
-#vort_interp = fc_ds_baro['vorticity'].interp( \
-#        lon=target_lon, \
-#        lat=target_lat, \
-#        time=target_time, \
-#        method='linear')    
-#TODO: write code to get points for a trajectory across time periods
+#
+# interpolate the vorticity to each trajectory
+#
+vort_trajectories = interp_vorticity(data, trajectories)
+
+plot_vort_timeline(trajectories)
