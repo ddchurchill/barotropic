@@ -1,6 +1,8 @@
 from scipy.misc import derivative
+import os
 import cmath # used for complex numbers - storing wind vectors
 import math
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
@@ -452,7 +454,7 @@ def plot_trajectories(dataset, start_time, deltat, nsteps):
 #
 # create an empty list of trajectories
     trajectory_list = []
-
+    start_at = time.time()
     index = 0
     for lat0 in lat_range:
         for lon0 in lon_range:
@@ -461,24 +463,36 @@ def plot_trajectories(dataset, start_time, deltat, nsteps):
                 huen_v3(dataset, lat0, lon0, timestamps)
             # append the parcel to the trajectory list
             trajectory_list.append(trajectory)
- 
+
+    switch_at = time.time()
 #
 # plot the trajectories
 #
     plot_traject_arrows(trajectory_list)
-#
+
+    end_at = time.time()
+    traj_time = switch_at - start_at
+    print("Trajectory Runtime: {:.2f} seconds".format(traj_time))
+    plot_time = end_at - switch_at
+    print("Plot Runtime: {:.2f} seconds".format(plot_time))
+    #
     file_name = "traj_" + start_str + "-" + last_str + ".png"
     plt.savefig(file_name)
     plt.show()
 #
-# interpolate the vorticity field into the trajectories
+# interpolate vorticity into each node of each trajectory
 #
+def interp_vorticity(dataset, trajectory_list):
+#
+
 #    vort_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, ##lon_lin),\
 #            absolute_vort, method='linear',bounds_error=False)
 
-#    for trajectory in trajectory_list:
-#        for p in trajectory.points:
-#            p.vort = vort_interpolator((p.lat,p.lon))
+    for trajectory in trajectory_list:
+        for p in trajectory.points:
+            p.vort = dataset['vorticity'].interp(lat=p.lat, lon=p.lon,
+                                                 time=p.timestamp)
+            
 # TODO: Analytics on changes in vorticity
 # Try an RMS percentage change in the vorticity over all complete trajectorie
 # Compare the vorticity at the start of a trajectory with its value at the
@@ -510,6 +524,7 @@ def plot_trajectories(dataset, start_time, deltat, nsteps):
 #    rms0 = np.sqrt(np.sum(vort0* vort0)/len(vort0)        )
 #    print("RMS of initial vorticity is ", rms0)
 #    print("Relative change is ", rms/rms0*100, " percent")
+
 def plot_speed(wind_data):
         # Create a separate plot for the geostrophic wind speed
     fig2 = plt.figure(figsize=(12, 8))
@@ -672,16 +687,20 @@ def plot_all_fields():
 
 # main program:
 # Open the NetCDF file
-fc_ds_baro = xr.open_dataset("forecasts_baro-spharm_2007-04-15_2007-04-18.nc")
-fc_ds_baro = fc_ds_baro.roll({"lon": 180})
-# Create a new map projection
-m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
+dataset_file = 'vortdata.nc'
+if os.path.exists(dataset_file):
+    data = xr.open_dataset(dataset_file)
+    print("Data read in from ", dataset_file)
+else:
+    # create the data and store it
+    fc_ds_baro = xr.open_dataset("forecasts_baro-spharm_2007-04-15_2007-04-18.nc")
+    fc_ds_baro = fc_ds_baro.roll({"lon": 180})
 
-#
-# create a new dataset with the winds, vorticity in it.
-time_periods = fc_ds_baro['time'].values
-data = xr.Dataset(
-    {
+    #
+    # create a new dataset with the winds, vorticity in it.
+    time_periods = fc_ds_baro['time'].values
+    data = xr.Dataset(
+        {
         "z500": (["time", "lat", "lon"], \
                   np.zeros((len(time_periods), len(lat_lin), \
                             len(lon_lin)))), \
@@ -698,65 +717,52 @@ data = xr.Dataset(
         "speed": (["time", "lat", "lon"], \
                       np.zeros((len(time_periods), len(lat_lin), \
                                 len(lon_lin)))), \
-    },\
-    coords={"time": time_periods, \
+        },\
+        coords={"time": time_periods, \
             "lat": lat_lin, "lon": lon_lin}, \
-)
-# repeat for each time period in the dataset
-# read in the data, compute winds and vorticity, add to dataset
-for time_index, time_stamp in enumerate(time_periods):
+    )
+    # repeat for each time period in the dataset
+    # read in the data, compute winds and vorticity, add to dataset
+    for time_index, time_stamp in enumerate(time_periods):
 
           
 
-#dt_str = np.datetime64.strftime(timestamp, '%Y-%m-%d %H:%M:%S')
-# set unit=D for days, =s for seconds
-    dt_str = np.datetime_as_string(time_stamp, unit='s')
-    print("time stamp ", dt_str)
-    geopot = baro_fcst(time_stamp)  # read in height field from data file.
+        dt_str = np.datetime_as_string(time_stamp, unit='s')
+        print("time stamp ", dt_str)
+        geopot = baro_fcst(time_stamp)  # read in height field from data file.
 
-    # generate geopotential field on the at lon grid
-    #
-    #geopot = ridge_and_trough(lon,lat)
-    #geopot = zonal_wind(lon,lat)  # create a westerly wind only
-    #geopot = north_wind(lon,lat)  # create a westerly wind only
-    # Calculate the geostrophic wind components and vorticity
-    #U_g, V_g, vorticity = wind_and_vorticity(lon_grid, lat_grid, \
-    # dz_dphi_algebraic, dz_dtheta_algebraic, lat_spacing, lon_spacing)
+        # generate geopotential field on the at lon grid
+        #
+        #geopot = ridge_and_trough(lon,lat)
+        #geopot = zonal_wind(lon,lat)  # create a westerly wind only
+        #geopot = north_wind(lon,lat)  # create a westerly wind only
+        # Calculate the geostrophic wind components and vorticity
+        #U_g, V_g, vorticity = wind_and_vorticity(lon_grid, lat_grid, \
+            # dz_dphi_algebraic, dz_dtheta_algebraic, lat_spacing, lon_spacing)
 
-#    winds2, zeta2, speed2 = prescribe_winds2() # uses my differences code
-    winds_u, winds_v, zeta3, speed3 = prescribe_winds3() # test code
-    #
-    # use the gradient calls
-    #
-#    winds, zeta, speed = prescribe_winds() # numpy gradient method
-#    relative_vorticity = zeta2 # use my differences code
-    zeta = zeta3
-    speed = speed3
-#    vort_with_time = xr.DataArray(zeta).expand_dims(time=[time_stamp])
-#    fc_ds_baro['vorticity'] = vort_with_time
-    data['z500'][time_index] = geopot 
-    data['wind_u'][time_index] = winds_u
-    data['wind_v'][time_index] = winds_v
-    data['vorticity'][time_index] = zeta
-    data['speed'][time_index] = speed    
+        #winds2, zeta2, speed2 = prescribe_winds2() # uses my differences code
+        winds_u, winds_v, zeta3, speed3 = prescribe_winds3() # test code
+        #
+        # use the gradient calls
+        #
+        #    winds, zeta, speed = prescribe_winds() # numpy gradient method
+        #    relative_vorticity = zeta2 # use my differences code
+        zeta = zeta3
+        speed = speed3
+        data['z500'][time_index] = geopot 
+        data['wind_u'][time_index] = winds_u
+        data['wind_v'][time_index] = winds_v
+        data['vorticity'][time_index] = zeta
+        data['speed'][time_index] = speed    
 
-#    rms_speed = np.sqrt(np.mean(np.square(speed)))
-#    rms_speed_diff = np.sqrt(np.mean(np.square(speed2 - speed)))
-#    print("max wind speed centered:", np.max(speed2))
-#    print("Max wind speed gradient:", np.max(speed))
-#    print("rms speed: ", rms_speed)
-#    print("rms speed diff:", rms_speed_diff)
-#    print("max vort: ",np.max(relative_vorticity))
-#    print("min vort: ",np.min(relative_vorticity))
-#    rms_diff = np.sqrt( np.mean(np.square(zeta - zeta2)))
-#    rms_vort = np.sqrt( np.mean(np.square(zeta)))
-#    print("vort rms diff: ", rms_diff)
-#    print("vort rms: ", rms_vort)
-#    print("vort: rel diff %:", rms_diff/rms_vort*100)
+        # write the data 
+        data.to_netcdf(dataset_file)
+        print("Data written to ", dataset_file)
 
-print("Completed generatings winds and vorticity")
 
 #plot_all_fields()
+# Create a new map projection
+m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
 # Plotting the trajectories
 #
