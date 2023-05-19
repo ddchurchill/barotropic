@@ -401,15 +401,38 @@ def plot_winds_v2(dataset, time_index):
 
     plt.show()
 #
+def compute_trajectories(dataset, start_time, deltat, nsteps):
+    lat_range = range(min_lat, max_lat +1, 10)
+    lon_range = range(min_lon, max_lon +1, 10)
+    hours = deltat/3600.  # number of hours in time step
+    subtitle_text = "Time step = " + str(hours) + " hours"
+    elapsed = nsteps * hours
+    timestamps = np.arange(nsteps +1) * np.timedelta64(deltat, 's') \
+        + start_time
+    last_time =timestamps[-1]
+    start_str = np.datetime_as_string(start_time, unit='s')
+    last_str = np.datetime_as_string(last_time, unit='s')
+    print("Requested times: ", timestamps)
+    trajectory_list = []
+    index = 0
+    for lat0 in lat_range:
+        for lon0 in lon_range:
+            # compute the trajectory from the model winds
+            trajectory = \
+                huen_v3(dataset, lat0, lon0, timestamps)
+            # append the parcel to the trajectory list
+            trajectory_list.append(trajectory)
+
+    return trajectory_list, timestamps
+#
 
 
-def plot_trajectories(dataset, start_time, deltat, nsteps):
+#def plot_trajectories(dataset, start_time, deltat, nsteps):
+def plot_trajectories(trajectories, timestamps):
     """
     input:
-        dataset
-        start_time - time stamp of when to start trajectory
-        deltat - time in seconds between nodes in the trajectory
-        nsteps - the number of nodes to create
+        trajectory list
+        timestamps for nodes in the trajectories
     
     """
     fig4 = plt.figure(figsize=(12,8))
@@ -421,16 +444,13 @@ def plot_trajectories(dataset, start_time, deltat, nsteps):
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
 
-    hours = deltat/3600.  # number of hours in time step
-    subtitle_text = "Time step = " + str(hours) + " hours"
-    elapsed = nsteps * hours
 # the colors of the trajectories cycle through the following list
     colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
 #
 # compute trajectories every 10 degrees in the domain
     lat_range = range(min_lat, max_lat +1, 10)
     lon_range = range(min_lon, max_lon +1, 10)
-    n_trajectories = len(lat_range) * len(lon_range)
+#    n_trajectories = len(lat_range) * len(lon_range)
     color_index = 0
 #
 # make a list of timestamps where we want nodes of the trajectories
@@ -438,8 +458,7 @@ def plot_trajectories(dataset, start_time, deltat, nsteps):
 #
 # 
 
-    timestamps = np.arange(nsteps +1) * np.timedelta64(deltat, 's') \
-        + start_time
+
     last_time =timestamps[-1]
     start_str = np.datetime_as_string(start_time, unit='s')
     last_str = np.datetime_as_string(last_time, unit='s')
@@ -448,33 +467,33 @@ def plot_trajectories(dataset, start_time, deltat, nsteps):
     title_text = "Trajectories, " + start_str + " to " + last_str
 
     plt.title(title_text)
-    plt.suptitle(subtitle_text)        
+#    plt.suptitle(subtitle_text)        
 #
 # repeat for each latitude and longitude in range
 #
 # create an empty list of trajectories
-    trajectory_list = []
-    start_at = time.time()
-    index = 0
-    for lat0 in lat_range:
-        for lon0 in lon_range:
-            # compute the trajectory from the model winds
-            trajectory = \
-                huen_v3(dataset, lat0, lon0, timestamps)
-            # append the parcel to the trajectory list
-            trajectory_list.append(trajectory)
-
-    switch_at = time.time()
+#    trajectory_list = []
+#    start_at = time.time()
+#    index = 0
+#    for lat0 in lat_range:
+#        for lon0 in lon_range:
+#            # compute the trajectory from the model winds
+#            trajectory = \
+#                huen_v3(dataset, lat0, lon0, timestamps)
+#            # append the parcel to the trajectory list
+#            trajectory_list.append(trajectory)
+#
+#    switch_at = time.time()
 #
 # plot the trajectories
 #
-    plot_traject_arrows(trajectory_list)
+    plot_traject_arrows(trajectories)
 
-    end_at = time.time()
-    traj_time = switch_at - start_at
-    print("Trajectory Runtime: {:.2f} seconds".format(traj_time))
-    plot_time = end_at - switch_at
-    print("Plot Runtime: {:.2f} seconds".format(plot_time))
+#    end_at = time.time()
+#    traj_time = switch_at - start_at
+#    print("Trajectory Runtime: {:.2f} seconds".format(traj_time))
+#    plot_time = end_at - switch_at
+#    print("Plot Runtime: {:.2f} seconds".format(plot_time))
     #
     file_name = "traj_" + start_str + "-" + last_str + ".png"
     plt.savefig(file_name)
@@ -485,12 +504,9 @@ def plot_trajectories(dataset, start_time, deltat, nsteps):
 def interp_vorticity(dataset, trajectory_list):
 #
 
-#    vort_interpolator = scipy.interpolate.RegularGridInterpolator((lat_lin, ##lon_lin),\
-#            absolute_vort, method='linear',bounds_error=False)
-
     for trajectory in trajectory_list:
         for p in trajectory.points:
-            p.vort = dataset['vorticity'].interp(lat=p.lat, lon=p.lon,
+            p.vort = dataset['abs_vorticity'].interp(lat=p.lat, lon=p.lon,
                                                  time=p.timestamp)
             
 # TODO: Analytics on changes in vorticity
@@ -711,9 +727,13 @@ else:
         "wind_v": (["time", "lat", "lon"], \
                   np.zeros((len(time_periods), len(lat_lin), \
                             len(lon_lin)))), \
-        "vorticity": (["time", "lat", "lon"], \
+        "rel_vorticity": (["time", "lat", "lon"], \
                       np.zeros((len(time_periods), len(lat_lin), \
                                 len(lon_lin)))),
+        "abs_vorticity": (["time", "lat", "lon"], \
+                      np.zeros((len(time_periods), len(lat_lin), \
+                                len(lon_lin)))),
+
         "speed": (["time", "lat", "lon"], \
                       np.zeros((len(time_periods), len(lat_lin), \
                                 len(lon_lin)))), \
@@ -752,12 +772,12 @@ else:
         data['z500'][time_index] = geopot 
         data['wind_u'][time_index] = winds_u
         data['wind_v'][time_index] = winds_v
-        data['vorticity'][time_index] = zeta
+        data['rel_vorticity'][time_index] = zeta
+        data['abs_vorticity'][time_index] = zeta + f
         data['speed'][time_index] = speed    
 
-        # write the data 
-        data.to_netcdf(dataset_file)
-        print("Data written to ", dataset_file)
+    data.to_netcdf(dataset_file)
+    print("Data written to ", dataset_file)
 
 
 #plot_all_fields()
@@ -769,12 +789,16 @@ m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=mi
 print("All times completed")
 
 
-# plot trajextoriea at given time periods
+trajeotory_file = "trajectories.nc"
 start_time = data['time'][0].values
 deltat = 6 * 3600 # 6 hour time steps
 nsteps = 12 # number of times to integrate over
 
-plot_trajectories(data, start_time, deltat, nsteps)
+trajectories, timestamps = compute_trajectories(data, start_time, deltat, nsteps)
+# plot trajectoriea at given time periods
+
+
+plot_trajectories(trajectories, timestamps)
 #vort_interp = fc_ds_baro['vorticity'].interp( \
 #        lon=target_lon, \
 #        lat=target_lat, \
