@@ -438,7 +438,6 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
 #
 
 
-#def plot_trajectories(dataset, start_time, deltat, nsteps):
 def plot_trajectories(trajectories, timestamps):
     """
     input:
@@ -761,7 +760,7 @@ else:
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-plot_all_fields(data)
+#plot_all_fields(data)
 
 # Plotting the trajectories
 #
