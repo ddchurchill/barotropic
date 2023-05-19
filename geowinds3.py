@@ -446,9 +446,6 @@ def plot_trajectories(trajectories, timestamps):
         timestamps for nodes in the trajectories
     
     """
-# Create a new map projection
-    m = Basemap(projection='cyl', llcrnrlat=min_lat, \
-                urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
     fig4 = plt.figure(figsize=(12,8))
 
@@ -583,7 +580,7 @@ def plot_vort(vort):
     x, y = m(lon, lat)
 
 #    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
-    absolute_vort[absolute_vort >0.] = 0 # filter out positive values
+#    absolute_vort[absolute_vort >0.] = 0 # filter out positive values
     m.contourf(x,y,absolute_vort, cmap='jet',levels=30)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
@@ -599,9 +596,8 @@ def plot_vort_v2(dataset, time_index):
 
     time_stamp = dataset['time'][time_index].values
     time_str = np.datetime_as_string(time_stamp, unit='s')
-    vort = dataset['vorticity'][time_index].values
-    absolute_vort = vort + f
-    print("plot vort: min abs vort:", np.min(absolute_vort))
+    vort = dataset['abs_vorticity'][time_index].values
+    print("plot vort: min abs vort:", np.min(vort))
     #
       
     fig3 = plt.figure(figsize=(12,8))
@@ -613,7 +609,7 @@ def plot_vort_v2(dataset, time_index):
 
 #    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
 #    absolute_vort[absolute_vort >0.] = 0 # filter out positive values
-    m.contourf(x,y,absolute_vort, cmap='jet',levels=30)
+    m.contourf(x,y,vort, cmap='jet',levels=30)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
@@ -649,7 +645,7 @@ def plot_rel_vort_v2(dataset, time_index):
         
     time_stamp = dataset['time'][time_index].values
     time_str = np.datetime_as_string(time_stamp, unit='s')
-    vort = dataset['vorticity'][time_index].values
+    vort = dataset['rel_vorticity'][time_index].values
 
     fig3a = plt.figure(figsize=(12,8))
     # Draw the continents and coastlines in white                                                                            
@@ -667,8 +663,10 @@ def plot_rel_vort_v2(dataset, time_index):
     plt.savefig("rel_vort"+time_str+".png")
     plt.show()
     
-def plot_all_fields():
+def plot_all_fields(dataset):
     # plot the fields for all time periods
+# Create a new map projection
+    time_periods = dataset['time']
     for time_index, time_stamp in enumerate(time_periods):
 
         plot_winds_v2(data,time_index) 
@@ -680,11 +678,9 @@ def plot_all_fields():
 
 # done making and saving plots.
 
-# datapint - get 
-
-
 # main program:
-# Open the NetCDF file
+# Read winds and vorticity from NetCDF file if it exists. Else create it.
+#
 dataset_file = 'vortdata.nc'
 if os.path.exists(dataset_file):
     data = xr.open_dataset(dataset_file)
@@ -734,6 +730,7 @@ else:
         geopot = baro_fcst(time_stamp)  # read in height field from data file.
 
         # generate geopotential field on the at lon grid
+        # these are test geopotential fields
         #
         #geopot = ridge_and_trough(lon,lat)
         #geopot = zonal_wind(lon,lat)  # create a westerly wind only
@@ -743,7 +740,7 @@ else:
             # dz_dphi_algebraic, dz_dtheta_algebraic, lat_spacing, lon_spacing)
 
         #winds2, zeta2, speed2 = prescribe_winds2() # uses my differences code
-        winds_u, winds_v, zeta3, speed3 = prescribe_winds3() # test code
+        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
         #
         # use the gradient calls
         #
@@ -761,8 +758,10 @@ else:
     data.to_netcdf(dataset_file)
     print("Data written to ", dataset_file)
 
+m = Basemap(projection='cyl', llcrnrlat=min_lat, \
+                urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-#plot_all_fields()
+plot_all_fields(data)
 
 # Plotting the trajectories
 #
