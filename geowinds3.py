@@ -446,6 +446,10 @@ def plot_trajectories(trajectories, timestamps):
         timestamps for nodes in the trajectories
     
     """
+# Create a new map projection
+    m = Basemap(projection='cyl', llcrnrlat=min_lat, \
+                urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
+
     fig4 = plt.figure(figsize=(12,8))
 
 
@@ -759,8 +763,6 @@ else:
 
 
 #plot_all_fields()
-# Create a new map projection
-m = Basemap(projection='cyl', llcrnrlat=min_lat, urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
 # Plotting the trajectories
 #
