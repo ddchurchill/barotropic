@@ -402,27 +402,38 @@ def plot_winds_v2(dataset, time_index):
     plt.show()
 #
 def compute_trajectories(dataset, start_time, deltat, nsteps):
-    lat_range = range(min_lat, max_lat +1, 10)
-    lon_range = range(min_lon, max_lon +1, 10)
-    hours = deltat/3600.  # number of hours in time step
-    subtitle_text = "Time step = " + str(hours) + " hours"
-    elapsed = nsteps * hours
-    timestamps = np.arange(nsteps +1) * np.timedelta64(deltat, 's') \
-        + start_time
-    last_time =timestamps[-1]
-    start_str = np.datetime_as_string(start_time, unit='s')
-    last_str = np.datetime_as_string(last_time, unit='s')
-    print("Requested times: ", timestamps)
-    trajectory_list = []
-    index = 0
-    for lat0 in lat_range:
-        for lon0 in lon_range:
-            # compute the trajectory from the model winds
-            trajectory = \
-                huen_v3(dataset, lat0, lon0, timestamps)
-            # append the parcel to the trajectory list
-            trajectory_list.append(trajectory)
+    trajectory_file = 'trajectories.npz' # numpy compressed file
+    if os.path.exists(trajectory_file):
+        npdata = np.load(trajectory_file,allow_pickle=True)
+        trajectory_list = npdata['trajectories']
+        timestamps = npdata['times']
+        print("Read in trajectory data from ", trajectory_file)
+    else: # compute the trajectories
+        lat_range = range(min_lat, max_lat +1, 10)
+        lon_range = range(min_lon, max_lon +1, 10)
+        hours = deltat/3600.  # number of hours in time step
+        subtitle_text = "Time step = " + str(hours) + " hours"
+        elapsed = nsteps * hours
+        timestamps = np.arange(nsteps +1) * np.timedelta64(deltat, 's') \
+            + start_time
+        last_time =timestamps[-1]
+        start_str = np.datetime_as_string(start_time, unit='s')
+        last_str = np.datetime_as_string(last_time, unit='s')
+        print("Requested times: ", timestamps)
+        trajectory_list = []
+        index = 0
+        for lat0 in lat_range:
+            for lon0 in lon_range:
+                # compute the trajectory from the model winds
+                trajectory = \
+                    huen_v3(dataset, lat0, lon0, timestamps)
+                # append the parcel to the trajectory list
+                trajectory_list.append(trajectory)
 
+        # save the data to a file.
+        np.savez(trajectory_file, trajectories=trajectory_list,\
+                 times=timestamps)
+        print("Wrote trajectories to ", trajectory_file)
     return trajectory_list, timestamps
 #
 
@@ -447,53 +458,20 @@ def plot_trajectories(trajectories, timestamps):
 # the colors of the trajectories cycle through the following list
     colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
 #
-# compute trajectories every 10 degrees in the domain
-    lat_range = range(min_lat, max_lat +1, 10)
-    lon_range = range(min_lon, max_lon +1, 10)
-#    n_trajectories = len(lat_range) * len(lon_range)
     color_index = 0
-#
-# make a list of timestamps where we want nodes of the trajectories
-# add 1 to nsteps, to get as many segements as nsteps
-#
-# 
-
-
-    last_time =timestamps[-1]
+    start_time = timestamps[0]
+    last_time = timestamps[-1]
     start_str = np.datetime_as_string(start_time, unit='s')
     last_str = np.datetime_as_string(last_time, unit='s')
-    print("Requested times: ", timestamps)
 
     title_text = "Trajectories, " + start_str + " to " + last_str
 
     plt.title(title_text)
 #    plt.suptitle(subtitle_text)        
-#
-# repeat for each latitude and longitude in range
-#
-# create an empty list of trajectories
-#    trajectory_list = []
-#    start_at = time.time()
-#    index = 0
-#    for lat0 in lat_range:
-#        for lon0 in lon_range:
-#            # compute the trajectory from the model winds
-#            trajectory = \
-#                huen_v3(dataset, lat0, lon0, timestamps)
-#            # append the parcel to the trajectory list
-#            trajectory_list.append(trajectory)
-#
-#    switch_at = time.time()
-#
 # plot the trajectories
 #
     plot_traject_arrows(trajectories)
 
-#    end_at = time.time()
-#    traj_time = switch_at - start_at
-#    print("Trajectory Runtime: {:.2f} seconds".format(traj_time))
-#    plot_time = end_at - switch_at
-#    print("Plot Runtime: {:.2f} seconds".format(plot_time))
     #
     file_name = "traj_" + start_str + "-" + last_str + ".png"
     plt.savefig(file_name)
