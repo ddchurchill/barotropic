@@ -1,10 +1,14 @@
 from scipy.misc import derivative
+import copy
+import matplotlib.gridspec as gridspec
 import os
 import cmath # used for complex numbers - storing wind vectors
 import math
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy
 from mpl_toolkits.basemap import Basemap
 from trajectory_v2 import Trajectory_v2
 from huen_v2 import *
@@ -436,7 +440,61 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
         print("Wrote trajectories to ", trajectory_file)
     return trajectory_list, timestamps
 #
+def plot_one_trajectory(traj):
+#    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure()
+#    gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1]) 
+    ax = fig.add_subplot(211, projection=ccrs.PlateCarree())
+    ax2 = fig.add_subplot(212)
+    ax.set_extent([min_lon, max_lon, min_lat, max_lat])
+    # Draw the continents and coastlines in white
+    ax.coastlines(linewidth=0.5, color='black')
+    ax.add_feature(cartopy.feature.BORDERS, linewidth=0.5, edgecolor='black')
 
+    # Draw parallels and meridians
+    parallels = range(min_lat, max_lat, 10)
+    meridians = range(min_lon, max_lon, 10)
+    ax.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
+                 linestyle='--')
+    ax.set_xticks(meridians, crs=ccrs.PlateCarree())
+    ax.set_yticks(parallels, crs=ccrs.PlateCarree())
+    ax.xaxis.set_ticklabels([])
+    ax.yaxis.set_ticklabels([])
+
+    vort_list = []
+
+    index = 0
+    for point in traj.points:
+        if index == 0:
+            start_lat = point.lat
+            start_lon = point.lon
+            start_time = point.timestamp
+
+        stop_lat = point.lat
+        stop_lon = point.lon
+        stop_time = point.timestamp
+        ax.arrow(point.lon, point.lat, point.dx, point.dy, \
+		  length_includes_head=True, head_length=0.8, \
+		  head_width=0.8, color='red')
+        vort_list.append(point.vort)
+        index += 1
+    
+    ax2.set_xlim(0, 11)
+    ax2.set_ylim(0, 2.e-4)
+    title = "start:  {:.2f},{:.2f}, end: {:.2f},{:.2f}".\
+        format(start_lat, start_lon, stop_lat, stop_lon)
+    start_str = np.datetime_as_string(start_time, unit='s')
+    stop_str =  np.datetime_as_string(stop_time, unit='s')
+    title = title + "\n" + start_str + " to " + stop_str
+    print(title)
+    plt.title(title)
+
+    ax2.plot(vort_list)
+
+
+    plt.tight_layout()
+    plt.show()
+    
 
 def plot_trajectories(trajectories, timestamps):
     """
@@ -699,6 +757,22 @@ def plot_vort_timeline(trajectories):
 #    rms0 = np.sqrt(np.sum(vort0* vort0)/len(vort0)        )
 #    print("RMS of initial vorticity is ", rms0)
 #    print("Relative change is ", rms/rms0*100, " percent")
+def plot_traj_timeline(trajectory):
+    fig, axs = plt.subplots(2, 1)  # 2 rows, 1 column
+
+    # Plot on the first subplot
+    #    axs[0].plot(x, y1)
+    axs[0].set_title('Plot 1')
+
+    # Plot on the second subplot
+#    axs[1].plot(x, y2)
+    axs[1].set_title('Plot 2')
+
+    # Adjust spacing between subplots
+    plt.tight_layout()
+
+    # Display the subplots
+    plt.show()
 
 # main program:
 # Read winds and vorticity from NetCDF file if it exists. Else create it.
@@ -803,6 +877,9 @@ plot_trajectories(trajectories, timestamps)
 #
 # interpolate the vorticity to each trajectory
 #
+#plot_traj_timeline(trajectories[10])
+
 vort_trajectories = interp_vorticity(data, trajectories)
 
-plot_vort_timeline(trajectories)
+plot_one_trajectory(trajectories[62])
+#plot_vort_timeline(trajectories)
