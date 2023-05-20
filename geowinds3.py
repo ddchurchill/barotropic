@@ -631,19 +631,36 @@ def plot_vort_timeline(trajectories):
         plot the vorticity as function of time for  each trajectory
     """
 
+    max_points = 11 # limit on x axis - should match maximum number of points
     for trajectory in trajectories:
-        if trajectory.length == 0:
-            continue  # skip any empty trajectories
+        if trajectory.length < 4:
+            continue  # skip any empty or trunjcated edge  trajectories
         vort_list = []
-        for point in trajectory.points:
+
+        for index, point in enumerate(trajectory.points):
+            if index == 0:
+                start_lat = point.lat
+                start_lon = point.lon
+                start_time = point.timestamp
+            stop_lat = point.lat
+            stop_lon = point.lon
+            stop_time = point.timestamp
             vort_list.append(point.vort)
 
         plt.plot(vort_list,marker="o")
         plt.xlabel('Time')
-        plt.ylabel('Vorticitye')
-        plt.ylim(-2.e-4, 2.e-4)
-        plt.xlim(0,11)
-        plt.title('Absolute vorticity vs time')
+        plt.ylabel('Absolute Vorticity')
+        plt.ylim(0, 2.e-4)
+        plt.xlim(0,max_points)
+        #
+        # show start and stop lat and lon in title
+        #
+        title = "start:  {:.2f},{:.2f}, end: {:.2f},{:.2f}".\
+            format(start_lat, start_lon, stop_lat, stop_lon)
+        start_str = np.datetime_as_string(start_time, unit='s')
+        stop_str =  np.datetime_as_string(stop_time, unit='s')
+        title = title + "\n" + start_str + " to " + stop_str
+        plt.title(title)
 
         # Display the plot
         plt.show()

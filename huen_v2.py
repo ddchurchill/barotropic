@@ -115,7 +115,7 @@ def huen_v3(dataset, lat0, lon0, timestamps):
         # append the updated lat and lon to the trajectory object
         point = TrajectoryPoint(lat1, lon1, dx, dy, timestamp)
         trajectory.points.append(point)
-
+        trajectory.length += 1  # keep track of length of trajectory
         # advance to the next point
         lat1 = lat2
         lon1 = lon2 

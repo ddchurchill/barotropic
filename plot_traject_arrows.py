@@ -17,13 +17,14 @@ def plot_traject_arrows(trajectory_list):
     #
     # the colors of the trajectories cycle through the following list             
     # Can always add more colors to the list as needed.
-    colors = ['black', 'red', 'blue', 'green','yellow','grey','orange', 'purple']
+    colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
     color_index = 0
     #
     # repeat for each trajectory
     #
     for trajectory in trajectory_list:
-
+        if trajectory.length == 0 : # skip any empty trajectoriea
+            continue
         line_color = colors[color_index % len(colors)]
         color_index += 1
         #
