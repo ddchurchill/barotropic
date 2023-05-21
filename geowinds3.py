@@ -673,16 +673,16 @@ def plot_all_fields(dataset):
 #
 # interpolate vorticity into each node of each trajectory
 #
-def interp_vorticity(dataset, trajectory_list):
+#def interp_vorticity(dataset, trajectory_list):
 #
-
-    for trajectory in trajectory_list:
-        for p in trajectory.points:
-            p.vort = dataset['abs_vorticity'].interp(lat=p.lat, lon=p.lon,
-                                                 time=p.timestamp)
-            
-    print("Vorticities were added to trajectoriea")
-    return
+#
+#    for trajectory in trajectory_list:
+#        for p in trajectory.points:
+#            p.vort = dataset['abs_vorticity'].interp(lat=p.lat, lon=p.lon,
+#                                                 time=p.timestamp)
+#            
+#    print("Vorticities were added to trajectoriea")
+#    return
 
 def plot_vort_timeline(trajectories):
     """
@@ -879,7 +879,7 @@ plot_trajectories(trajectories, timestamps)
 #
 #plot_traj_timeline(trajectories[10])
 
-vort_trajectories = interp_vorticity(data, trajectories)
+#vort_trajectories = interp_vorticity(data, trajectories)
 
 plot_one_trajectory(trajectories[62])
 #plot_vort_timeline(trajectories)

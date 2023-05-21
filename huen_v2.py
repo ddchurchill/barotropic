@@ -116,6 +116,12 @@ def huen_v3(dataset, lat0, lon0, timestamps):
         dy = lat2 - lat1  # used for plotting trajectories
         # append the updated lat and lon to the trajectory object
         point = TrajectoryPoint(lat1, lon1, dx, dy, timestamp)
+        # interpolate to determine vorticity at this point.
+        point.vort = dataset['abs_vorticity'].interp(lat=point.lat, \
+                                                     lon=point.lon, \
+                                                 time=point.timestamp)
+
+        # add the point to the trajectory
         trajectory.points.append(point)
         trajectory.length += 1  # keep track of length of trajectory
         #update the last position of the trajectory
