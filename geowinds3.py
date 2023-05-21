@@ -486,11 +486,14 @@ def plot_one_trajectory(traj):
     start_str = np.datetime_as_string(t.start_time, unit='s')
     stop_str =  np.datetime_as_string(t.stop_time, unit='s')
     title = title + "\n" + start_str + " to " + stop_str
+    line1 = "Begin: {:.2f}, {:.2f}, ".format(t.start_lat,t.start_lon)
+    line2 = "End: {:.2f}, {:.2f}, ".format(t.last_lat,t.last_lon)
+    title = line1 + start_str + "\n" + line2 + stop_str
     print(title)
     plt.title(title)
 
     vort_list = [p.vort for p in traj.points]
-    ax2.plot(vort_list)
+    ax2.plot(vort_list,color='red')
 
 
     plt.tight_layout()
