@@ -11,14 +11,14 @@ import cartopy.crs as ccrs
 import cartopy
 from mpl_toolkits.basemap import Basemap
 from trajectory_v2 import Trajectory_v2
-from huen_v2 import *
+from huen_v3 import *
 import scipy.interpolate
 import xarray as xr
 
 from velocity import Velocity as vel
 from trajectory import Trajectory 
-from traject import euler
-from traject import huen
+#from traject import euler
+#from traject import huen
 from diff import *
 from traject_constants import * 
 from plot_traject_arrows import *
@@ -491,6 +491,13 @@ def plot_one_trajectory(traj):
     subtitle = "Time step = {:.1f} hours".format(t.time_step/3600)
     plt.suptitle(subtitle)
     vort_list = [p.vort for p in traj.points]
+
+    for p in traj.points:
+        elapsed_time = p.timestamp - traj.start_time
+        hours = elapsed_time.astype('float') / 3600.e9
+
+        print(p.lat, p.lon, p.timestamp, hours)
+        
 #
 # plot the timeline of vorticity
 #
