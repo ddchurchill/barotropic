@@ -441,8 +441,8 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
     return trajectory_list, timestamps
 #
 def plot_one_trajectory(traj):
-#    fig = plt.figure(figsize=(12, 8))
-    fig = plt.figure()
+    fig = plt.figure(figsize=(12, 8))
+#    fig = plt.figure()
 #    gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1]) 
     ax = fig.add_subplot(211, projection=ccrs.PlateCarree())
     ax2 = fig.add_subplot(212)
@@ -466,19 +466,19 @@ def plot_one_trajectory(traj):
     # plot an arrow head and 
     # gather the absolute vorticity values in an array for plotting
     #
-    vort_list = []
+
 
     for point in traj.points:
         ax.arrow(point.lon, point.lat, point.dx, point.dy, \
 		  length_includes_head=True, head_length=0.8, \
 		  head_width=0.8, color='red')
-        vort_list.append(point.vort)
+
     
     #
     # plot a timeline of vorticity values     
     ax2.set_xlim(0, 11)
     ax2.set_ylim(0, 2.e-4)
-    ax2.set_xlabel('Elapsed time')
+    ax2.set_xlabel('Elapsed time (hours)')
     ax2.set_ylabel('Abs. Vorticity')
     t = traj
     title = "start:  {:.2f},{:.2f}, end: {:.2f},{:.2f}".\
@@ -489,6 +489,7 @@ def plot_one_trajectory(traj):
     print(title)
     plt.title(title)
 
+    vort_list = [p.vort for p in traj.points]
     ax2.plot(vort_list)
 
 
