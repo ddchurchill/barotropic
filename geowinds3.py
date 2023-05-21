@@ -440,7 +440,11 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
         print("Wrote trajectories to ", trajectory_file)
     return trajectory_list, timestamps
 #
-def plot_one_trajectory(traj):
+def plot_one_trajectory(traj, filename):
+    """
+    input: traj - a trajectory
+           filename - name of file to write plot to
+    """
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(211, projection=ccrs.PlateCarree())
     ax2 = fig.add_subplot(212)
@@ -461,16 +465,13 @@ def plot_one_trajectory(traj):
 
     #
     # iterate throught the points in a trajectory,
-    # plot an arrow head and 
-    # gather the absolute vorticity values in an array for plotting
+    # plot an arrow head for each
     #
     for point in traj.points:
         ax.arrow(point.lon, point.lat, point.dx, point.dy, \
 		  length_includes_head=True, head_length=1.0, \
 		  head_width=1.0, color='red')
 
-    
-    #
     # plot a timeline of vorticity values     
 
     ax2.set_ylim(0, 2.e-4)
@@ -505,12 +506,15 @@ def plot_one_trajectory(traj):
 #
     ax2.plot(time_list, vort_list,color='red')
 
+    plt.tight_layout() # this is needed to prevent overlapping figures.
 
+    plt.savefig(filename)
+#    plt.show()
+#
+# save the plot for a file
+#
 
-    plt.tight_layout()
-    plt.show()
     
-
 def plot_trajectories(trajectories, timestamps):
     """
     input:
@@ -896,5 +900,9 @@ plot_trajectories(trajectories, timestamps)
 
 #vort_trajectories = interp_vorticity(data, trajectories)
 
-plot_one_trajectory(trajectories[62])
-#plot_vort_timeline(trajectories)
+for i, t in enumerate(trajectories):
+    filename = "t" + str(i)
+    
+    plot_one_trajectory(t,filename)
+    print("saved ", filename)
+
