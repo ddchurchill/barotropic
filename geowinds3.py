@@ -495,11 +495,14 @@ def plot_one_trajectory(traj):
 # plot the timeline of vorticity
 #
 
-    elapsed_time = np.arange(t.length) * t.time_step/3600.
-    max_time = t.length * t.time_step/3600.
-    ax2.set_xlim(0, max_time)
-    ax2.set_xticks(elapsed_time)
-    ax2.plot(elapsed_time, vort_list,color='red')
+    elapsed_time = t.stop_time - t.start_time
+    hours = elapsed_time.astype('float') / 3600.e9
+    print("hours = ", hours)
+    ax2.set_xlim(0, hours)
+
+    time_interval = np.arange(t.length) * t.time_step/3600.
+    ax2.set_xticks(time_interval)
+    ax2.plot(time_interval, vort_list,color='red')
 
 
 
