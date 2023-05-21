@@ -413,8 +413,8 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
         timestamps = npdata['times']
         print("Read in trajectory data from ", trajectory_file)
     else: # compute the trajectories
-        lat_range = range(min_lat, max_lat +1, 10)
-        lon_range = range(min_lon, max_lon +1, 10)
+        lat_range = range(min_lat +5, max_lat -4, 10)
+        lon_range = range(min_lon + 5, max_lon -5, 10)
         hours = deltat/3600.  # number of hours in time step
         subtitle_text = "Time step = " + str(hours) + " hours"
         elapsed = nsteps * hours
@@ -461,30 +461,30 @@ def plot_one_trajectory(traj):
     ax.xaxis.set_ticklabels([])
     ax.yaxis.set_ticklabels([])
 
+    #
+    # iterate throught the points in a trajectory,
+    # plot an arrow head and 
+    # gather the absolute vorticity values in an array for plotting
+    #
     vort_list = []
 
-    index = 0
     for point in traj.points:
-        if index == 0:
-            start_lat = point.lat
-            start_lon = point.lon
-            start_time = point.timestamp
-
-        stop_lat = point.lat
-        stop_lon = point.lon
-        stop_time = point.timestamp
         ax.arrow(point.lon, point.lat, point.dx, point.dy, \
 		  length_includes_head=True, head_length=0.8, \
 		  head_width=0.8, color='red')
         vort_list.append(point.vort)
-        index += 1
     
+    #
+    # plot a timeline of vorticity values     
     ax2.set_xlim(0, 11)
     ax2.set_ylim(0, 2.e-4)
+    ax2.set_xlabel('Elapsed time')
+    ax2.set_ylabel('Abs. Vorticity')
+    t = traj
     title = "start:  {:.2f},{:.2f}, end: {:.2f},{:.2f}".\
-        format(start_lat, start_lon, stop_lat, stop_lon)
-    start_str = np.datetime_as_string(start_time, unit='s')
-    stop_str =  np.datetime_as_string(stop_time, unit='s')
+        format(t.start_lat, t.start_lon, t.last_lat, t.last_lon)
+    start_str = np.datetime_as_string(t.start_time, unit='s')
+    stop_str =  np.datetime_as_string(t.stop_time, unit='s')
     title = title + "\n" + start_str + " to " + stop_str
     print(title)
     plt.title(title)
