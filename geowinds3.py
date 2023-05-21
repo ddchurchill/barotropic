@@ -442,8 +442,6 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
 #
 def plot_one_trajectory(traj):
     fig = plt.figure(figsize=(12, 8))
-#    fig = plt.figure()
-#    gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1]) 
     ax = fig.add_subplot(211, projection=ccrs.PlateCarree())
     ax2 = fig.add_subplot(212)
     ax.set_extent([min_lon, max_lon, min_lat, max_lat])
@@ -466,17 +464,15 @@ def plot_one_trajectory(traj):
     # plot an arrow head and 
     # gather the absolute vorticity values in an array for plotting
     #
-
-
     for point in traj.points:
         ax.arrow(point.lon, point.lat, point.dx, point.dy, \
-		  length_includes_head=True, head_length=0.8, \
-		  head_width=0.8, color='red')
+		  length_includes_head=True, head_length=1.0, \
+		  head_width=1.0, color='red')
 
     
     #
     # plot a timeline of vorticity values     
-    ax2.set_xlim(0, 11)
+
     ax2.set_ylim(0, 2.e-4)
     ax2.set_xlabel('Elapsed time (hours)')
     ax2.set_ylabel('Abs. Vorticity')
@@ -492,8 +488,19 @@ def plot_one_trajectory(traj):
     print(title)
     plt.title(title)
 
+    subtitle = "Time step = {:.1f} hours".format(t.time_step/3600)
+    plt.suptitle(subtitle)
     vort_list = [p.vort for p in traj.points]
-    ax2.plot(vort_list,color='red')
+#
+# plot the timeline of vorticity
+#
+
+    elapsed_time = np.arange(t.length) * t.time_step/3600.
+    max_time = t.length * t.time_step/3600.
+    ax2.set_xlim(0, max_time)
+    ax2.set_xticks(elapsed_time)
+    ax2.plot(elapsed_time, vort_list,color='red')
+
 
 
     plt.tight_layout()
