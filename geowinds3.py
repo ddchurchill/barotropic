@@ -474,7 +474,7 @@ def plot_one_trajectory(traj):
     # plot a timeline of vorticity values     
 
     ax2.set_ylim(0, 2.e-4)
-    ax2.set_xlabel('Elapsed time (hours)')
+    ax2.set_xlabel('Date Time')
     ax2.set_ylabel('Abs. Vorticity')
     t = traj
     title = "start:  {:.2f},{:.2f}, end: {:.2f},{:.2f}".\
@@ -490,26 +490,20 @@ def plot_one_trajectory(traj):
 
     subtitle = "Time step = {:.1f} hours".format(t.time_step/3600)
     plt.suptitle(subtitle)
-    vort_list = [p.vort for p in traj.points]
-
-    for p in traj.points:
-        elapsed_time = p.timestamp - traj.start_time
-        hours = elapsed_time.astype('float') / 3600.e9
-
-        print(p.lat, p.lon, p.timestamp, hours)
         
 #
 # plot the timeline of vorticity
 #
+    ax2.grid(axis='y', linestyle='--')
+    ax2.grid(axis='x', linestyle='--')
 
-    elapsed_time = t.stop_time - t.start_time
-    hours = elapsed_time.astype('float') / 3600.e9
-    print("hours = ", hours)
-    ax2.set_xlim(0, hours)
-
-    time_interval = np.arange(t.length) * t.time_step/3600.
-    ax2.set_xticks(time_interval)
-    ax2.plot(time_interval, vort_list,color='red')
+    time_list = [p.timestamp for p in traj.points]
+    vort_list = [p.vort for p in traj.points]
+#
+# seems that the plot is not showing the last time period,
+# though printout of the data shows it is in the array...
+#
+    ax2.plot(time_list, vort_list,color='red')
 
 
 
