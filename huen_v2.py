@@ -7,7 +7,7 @@ from velocity import Velocity
     
 def euler_v2(wind_model, lat0, lon0, deltat, nsteps):
     # same as huen_2 but with only the euler step included, for comparison
-    trajectory = Trajectory_v2()
+    trajectory = Trajectory_v2(lat0, lon0, deltat)
     # lat1 and lon1 are tracking the start point of the trajectory
     lat1 = lat0
     lon1 = lon0  
@@ -33,7 +33,8 @@ def euler_v2(wind_model, lat0, lon0, deltat, nsteps):
         # append the updated lat and lon to the trajectory object
         point = TrajectoryPoint(lat1, lon1, dx, dy, time)
         trajectory.points.append(point)
-
+        trajectory.length += 1
+        
         # advance to the next point
         lat1 = lat2
         lon1 = lon2 
@@ -56,11 +57,13 @@ def huen_v3(dataset, lat0, lon0, timestamps):
     #
     # in thie version, pass a iist of timestamps in netcdf format
     #
-    trajectory = Trajectory_v2()
+    # deltat is the time step in seconds between trajectory nodes.
+    deltat = int((timestamps[1] - timestamps[0])/ np.timedelta64(1, 's'))
+
+    trajectory = Trajectory_v2(lat0, lon0, deltat, timestamps[0])
     # lat1 and lon1 are tracking the start point of the trajectory
     lat1 = lat0
     lon1 = lon0  
-
 # iterate through the timestamps, noting the last one terminates the
 # the last node of the trajectory
     uwind = dataset['wind_u']
@@ -70,7 +73,6 @@ def huen_v3(dataset, lat0, lon0, timestamps):
 #
 # compute elapsed time in seconds between requested timestamps
 #
-        deltat = int((next_time - timestamp)/ np.timedelta64(1, 's'))
 #
 # query the dstaset, interpolating in time and space
 #
@@ -116,6 +118,10 @@ def huen_v3(dataset, lat0, lon0, timestamps):
         point = TrajectoryPoint(lat1, lon1, dx, dy, timestamp)
         trajectory.points.append(point)
         trajectory.length += 1  # keep track of length of trajectory
+        #update the last position of the trajectory
+        trajectory.last_lat = lat2
+        trajectory.last_lon = lon2
+        trajectory.stop_time = next_time
         # advance to the next point
         lat1 = lat2
         lon1 = lon2 
