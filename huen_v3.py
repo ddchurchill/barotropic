@@ -96,6 +96,17 @@ def huen_v3(dataset, lat0, lon0, timestamps):
         lat1 = lat2
         lon1 = lon2 
 #
+# add the final point to the trajectory
+#
+    point = TrajectoryPoint(trajectory.last_lat, trajectory.last_lon,\
+                            0., 0., trajectory.stop_time)
+    point.vort = dataset['abs_vorticity'].interp(lat=point.lat, \
+                                                     lon=point.lon, \
+                                                 time=point.timestamp)
+
+    trajectory.points.append(point)
+    trajectory.length += 1
+#
 ## return the trajectory object
 ##                                                                                     
     return trajectory
