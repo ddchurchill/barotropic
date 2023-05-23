@@ -7,13 +7,14 @@ from velocity import Velocity
     
 #
 # input the Xarray dataset, that can interpolated
-def huen_v3(dataset, lat0, lon0, timestamps):
+def huen_v3(dataset, lat0, lon0, timestamps, deltat):
     """
     input;
          dataset
          lat0 - starting latitude for trajectory
          lon0 - starting longitude for trajectory
          timestamps - list of times for nodes in the trajectory
+         deltat - time step in seconds
     output:
          trajectory - list of trajectory nodes
     """
@@ -21,7 +22,7 @@ def huen_v3(dataset, lat0, lon0, timestamps):
     # in thie version, pass a iist of timestamps in netcdf format
     #
     # deltat is the time step in seconds between trajectory nodes.
-    deltat = int((timestamps[1] - timestamps[0])/ np.timedelta64(1, 's'))
+#    deltat = int((timestamps[1] - timestamps[0])/ np.timedelta64(1, 's'))
 
     # lat0 and lon0 are the starting  point of the trajectory
     trajectory = Trajectory_v2(lat0, lon0, deltat, timestamps[0])

@@ -430,7 +430,7 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
             for lon0 in lon_range:
                 # compute the trajectory from the model winds
                 trajectory = \
-                    huen_v3(dataset, lat0, lon0, timestamps)
+                    huen_v3(dataset, lat0, lon0, timestamps, deltat)
                 # append the parcel to the trajectory list
                 trajectory_list.append(trajectory)
 
@@ -445,7 +445,7 @@ def plot_one_trajectory(traj, filename):
     input: traj - a trajectory
            filename - name of file to write plot to
     """
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(8, 10))
     ax = fig.add_subplot(211, projection=ccrs.PlateCarree())
     ax2 = fig.add_subplot(212)
     ax.set_extent([min_lon, max_lon, min_lat, max_lat])
@@ -467,7 +467,10 @@ def plot_one_trajectory(traj, filename):
     # iterate throught the points in a trajectory,
     # plot an arrow head for each
     #
+#    i = 0
     for point in traj.points:
+#        print(i, point.lat, point.lon, point.timestamp)
+#        i += 1
         ax.arrow(point.lon, point.lat, point.dx, point.dy, \
 		  length_includes_head=True, head_length=1.0, \
 		  head_width=1.0, color='red')
@@ -501,14 +504,12 @@ def plot_one_trajectory(traj, filename):
     time_list = [p.timestamp for p in traj.points]
     vort_list = [p.vort for p in traj.points]
 #
-# seems that the plot is not showing the last time period,
-# though printout of the data shows it is in the array...
-#
     ax2.plot(time_list, vort_list,color='red')
 
     plt.tight_layout() # this is needed to prevent overlapping figures.
 
     plt.savefig(filename)
+    plt.close()
 #    plt.show()
 #
 # save the plot for a file
@@ -885,7 +886,8 @@ print("All times completed")
 
 trajeotory_file = "trajectories.nc"
 start_time = data['time'][0].values
-deltat = 6 * 3600 # 6 hour time steps
+dt_hours = 6 # time step in hours
+deltat = dt_hours * 3600 # 6 hour time steps
 nsteps = 12 # number of times to integrate over
 
 trajectories, timestamps = compute_trajectories(data, start_time, deltat, nsteps)
@@ -901,8 +903,10 @@ plot_trajectories(trajectories, timestamps)
 #vort_trajectories = interp_vorticity(data, trajectories)
 
 for i, t in enumerate(trajectories):
-    filename = "t" + str(i)
+    filename = "tstep_" + str(dt_hours) + "hour" + str(i)
     
     plot_one_trajectory(t,filename)
     print("saved ", filename)
+
+
 
