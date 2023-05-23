@@ -435,8 +435,8 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
                 trajectory_list.append(trajectory)
 
         # save the data to a file.
-        np.savez(trajectory_file, trajectories=trajectory_list,\
-                 times=timestamps)
+#        np.savez(trajectory_file, trajectories=trajectory_list,\
+#                 times=timestamps, allow_pickle=True)
         print("Wrote trajectories to ", trajectory_file)
     return trajectory_list, timestamps
 #
@@ -886,10 +886,16 @@ print("All times completed")
 
 trajeotory_file = "trajectories.nc"
 start_time = data['time'][0].values
-dt_hours = 6 # time step in hours
-deltat = dt_hours * 3600 # 6 hour time steps
-nsteps = 12 # number of times to integrate over
+#
+# for no time interpolation  use time step of 24 hours
+# we have 72 hours of data in 4 time slices
+dt_hours = 24
+nsteps = 3
 
+#dt_hours = 6 # time step in hours
+#nsteps = 12 # number of times to integrate over
+
+deltat = dt_hours * 3600 # time step in seconds
 trajectories, timestamps = compute_trajectories(data, start_time, deltat, nsteps)
 # plot trajectoriea at given time periods
 
