@@ -6,22 +6,27 @@ from velocity import Velocity
 
 def getwind(ds, lat, lon, timestamp):
     wind_u = ds['wind_u'].interp(time=timestamp, lat=lat, \
-                          lon=lon, method="linear").values
+                          lon=lon, method="cubic").values
     wind_v = ds['wind_v'].interp(time=timestamp, lat=lat, \
-                          lon=lon, method="linear").values
+                          lon=lon, method="cubic").values
     return wind_u, wind_v
 
 # no time interpolation
 def getwind_nointerp(ds, lat, lon, timestamp):
     timeset = ds.sel(time=timestamp)
-    wind_u = timeset['wind_u'].interp(lat=lat, lon=lon, method='linear')
-    wind_v = timeset['wind_v'].interp(lat=lat, lon=lon, method='linear')
+    wind_u = timeset['wind_u'].interp(lat=lat, lon=lon, method='cubic')
+    wind_v = timeset['wind_v'].interp(lat=lat, lon=lon, method='cubic')
     return wind_u, wind_v
 def getvort_nointerp(ds, lat, lon, timestamp):
     timeset = ds.sel(time=timestamp)
     vort   = timeset['abs_vorticity'].interp(lat=lat, lon=lon, \
-                    method='linear')
+                    method='cubic')
     return vort
+def getvort(ds, lat, lon, timestamp):
+    vort = ds['abs_vorticity'].interp(time=timestamp, lat=lat, \
+                          lon=lon, method="cubic").values
+    return vort
+
 
 
     
@@ -62,7 +67,8 @@ def huen_v3(dataset, lat0, lon0, timestamps, deltat):
 #
 # query the dstaset, interpolating in time and space
 #
-        wind_u, wind_v = getwind_nointerp(dataset, lat1, lon1, timestamp)
+#        wind_u, wind_v = getwind_nointerp(dataset, lat1, lon1, timestamp)
+        wind_u, wind_v = getwind(dataset, lat1, lon1, timestamp)
         # if no wind found at this location/time, break out of loop
         if np.isnan(wind_u) or np.isnan(wind_v): 
             break;
@@ -79,8 +85,11 @@ def huen_v3(dataset, lat0, lon0, timestamps, deltat):
 #                              lon=lon_bar, method="linear").values
 #        wind_v_bar = vwind.interp(time=next_time, lat=lat_bar, \
 #                              lon=lon_bar, method="linear").values
+#        wind_u_bar, wind_v_bar = \
+#            getwind_nointerp(dataset, lat_bar, lon_bar, next_time)
         wind_u_bar, wind_v_bar = \
-            getwind_nointerp(dataset, lat_bar, lon_bar, next_time)
+            getwind(dataset, lat_bar, lon_bar, next_time)
+
         
         # again, if no wind found, break out of loop
         if np.isnan(wind_u_bar) or np.isnan(wind_v_bar) : 
@@ -104,7 +113,8 @@ def huen_v3(dataset, lat0, lon0, timestamps, deltat):
 #        point.vort = dataset['abs_vorticity'].interp(lat=point.lat, \
 #                                                     lon=point.lon, \
 #                                                 time=point.timestamp)
-        point.vort = getvort_nointerp(dataset, lat1, lon1, timestamp)
+        point.vort = getvort(dataset, lat1, lon1, timestamp)
+#        point.vort = getvort_nointerp(dataset, lat1, lon1, timestamp)
         # add the point to the trajectory
         trajectory.points.append(point)
         trajectory.length += 1  # keep track of length of trajectory
@@ -123,7 +133,8 @@ def huen_v3(dataset, lat0, lon0, timestamps, deltat):
 #    point.vort = dataset['abs_vorticity'].interp(lat=point.lat, \
 #                                                     lon=point.lon, \
 #                                                 time=point.timestamp)
-    point.vort = getvort_nointerp(dataset,point.lat, point.lon, point.timestamp)
+#    point.vort = getvort_nointerp(dataset,point.lat, point.lon, point.timestamp)
+    point.vort = getvort(dataset,point.lat, point.lon, point.timestamp)
     trajectory.points.append(point)
     trajectory.length += 1
 #
