@@ -12,7 +12,7 @@ import cartopy.crs as ccrs
 import cartopy
 from mpl_toolkits.basemap import Basemap
 from trajectory_v2 import Trajectory_v2
-from huen_v3 import *
+from huen_v4 import *
 import scipy.interpolate
 import xarray as xr
 
@@ -80,7 +80,6 @@ def get_zeta1(geopot):
 def get_zeta(z, x, y):
     """
     get_zeta - compute relative vorticity from geopotential height, z, with input longitudes, x ,
-
     and input latitudes, y, 
     Use manual centered differences.
     Assuming grid spacing of 1 degree
@@ -426,7 +425,7 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
     if os.path.exists(trajectory_file):
         npdata = np.load(trajectory_file,allow_pickle=True)
         trajectory_list = npdata['trajectories']
-        timestamps = npdata['times']
+
         print("Read in trajectory data from ", trajectory_file)
     else: # compute the trajectories
         lat_range = range(min_lat +5, max_lat -4, 10)
@@ -434,27 +433,21 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
         hours = deltat/3600.  # number of hours in time step
         subtitle_text = "Time step = " + str(hours) + " hours"
         elapsed = nsteps * hours
-        timestamps = np.arange(nsteps +1) * np.timedelta64(deltat, 's') \
-            + start_time
-        last_time =timestamps[-1]
-        start_str = np.datetime_as_string(start_time, unit='s')
-        last_str = np.datetime_as_string(last_time, unit='s')
-        print("Requested times: ", timestamps)
         trajectory_list = []
         index = 0
         for lat0 in lat_range:
             for lon0 in lon_range:
                 # compute the trajectory from the model winds
                 trajectory = \
-                    huen_v3(dataset, lat0, lon0, timestamps, deltat)
+                    huen_v4(dataset, lat0, lon0, nsteps, deltat)
                 # append the parcel to the trajectory list
                 trajectory_list.append(trajectory)
 
         # save the data to a file.
-        np.savez(trajectory_file, trajectories=trajectory_list,\
-                 times=timestamps, allow_pickle=True)
+        np.savez(trajectory_file, trajectories=trajectory_list)
+                 
         print("Wrote trajectories to ", trajectory_file)
-    return trajectory_list, timestamps
+    return trajectory_list
 #
 def plot_one_trajectory(traj, filename):
     """
@@ -532,12 +525,10 @@ def plot_one_trajectory(traj, filename):
 #
 
     
-def plot_trajectories(trajectories, timestamps):
+def plot_trajectories(trajectories):
     """
     input:
         trajectory list
-        timestamps for nodes in the trajectories
-    
     """
 
     fig4 = plt.figure(figsize=(12,8))
@@ -553,13 +544,15 @@ def plot_trajectories(trajectories, timestamps):
     colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
 #
     color_index = 0
-    start_time = timestamps[0]
-    last_time = timestamps[-1]
-    start_str = np.datetime_as_string(start_time, unit='s')
-    last_str = np.datetime_as_string(last_time, unit='s')
+    start_time = trajectories[0].start_time
+    last_time =  trajectories[0].stop_time
+    start_str = str(start_time)
+    last_str = str(last_time)
+#    start_str = np.datetime_as_string(start_time, unit='s')
+#    last_str = np.datetime_as_string(last_time, unit='s')
 
     title_text = "Trajectories, " + start_str + " to " + last_str
-
+    print(title_text)
     plt.title(title_text)
 #    plt.suptitle(subtitle_text)        
 # plot the trajectories
@@ -570,6 +563,7 @@ def plot_trajectories(trajectories, timestamps):
     file_name = "traj_" + start_str + "-" + last_str + ".png"
     plt.savefig(file_name)
     plt.show()
+    plt.close()
 
 def plot_speed_v2(dataset, time_index, time_str, showplot):
 
@@ -902,30 +896,27 @@ else:
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-plot_all_fields(data, maxsteps, False)
+#plot_all_fields(data, maxsteps, False)
 
 # Plotting the trajectories
 #
 print("All times completed")
 
-
 trajeotory_file = "trajectories.nc"
-start_time = data['time'][0].values
-#
-# for no time interpolation  use time step of 24 hours
-# we have 72 hours of data in 4 time slices
-dt_hours = 24
-nsteps = 3
 
-#dt_hours = 6 # time step in hours
-#nsteps = 12 # number of times to integrate over
+start_time = data['time']
+
+#
+
+dt_hours = 1 # time step in hours
+nsteps = 48 # number of step to integrate over
 
 deltat = dt_hours * 3600 # time step in seconds
-trajectories, timestamps = compute_trajectories(data, start_time, deltat, nsteps)
+trajectories = compute_trajectories(data, start_time, deltat, nsteps)
 # plot trajectoriea at given time periods
 
 
-plot_trajectories(trajectories, timestamps)
+plot_trajectories(trajectories)
 #
 # interpolate the vorticity to each trajectory
 #
