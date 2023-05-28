@@ -369,22 +369,24 @@ def plot_winds(wind_data):
 
     plt.show()
 
-def plot_winds_v2(dataset, time_index):
+def plot_winds_v2(dataset, time_index, time_str):
 
 #    time_stamp = dataset['time'][time_index].values
-    steps = dataset['step'].values
-    time_step = steps[time_index]
-    print("time index is ", time_index)
-    start_time = dataset['time'].values
-    print("plotwinds2: start time:", start_time)
-    time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
-    dt_str = np.datetime_as_string(time_stamp, unit='s')
+#    steps = dataset['step'].values
+#    time_step = steps[time_index]
+#    print("time index is ", time_index)
+#    start_time = dataset['time'].values
+#    print("plotwinds2: start time:", start_time)
+#    time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
+#    dt_str = np.datetime_as_string(time_stamp, unit='s')
+#
+
     print("plot winds v2: time stamp ", dt_str)
     steps = dataset['step'].values
     
-    print("plot winds v23: time = ", time_stamp)
-    time_str = np.datetime_as_string(time_stamp, unit='s')
-    print(" time string:", time_str)
+#    print("plot winds v23: time = ", time_stamp)
+#    time_str = np.datetime_as_string(time_stamp, unit='s')
+    print("plot winds v2: time string:", time_str)
         ## Create a new figure
     fig = plt.figure(figsize=(12, 8))
     
@@ -565,7 +567,7 @@ def plot_trajectories(trajectories, timestamps):
     plt.savefig(file_name)
     plt.show()
 
-def plot_speed_v2(dataset, time_index):
+def plot_speed_v2(dataset, time_index, time_str):
 
     fig2 = plt.figure(figsize=(12, 8))
      
@@ -583,8 +585,8 @@ def plot_speed_v2(dataset, time_index):
     # Draw the geostrophic# Show the plot
     # Add a colorbar and title
     plt.colorbar(label='Wind speed')
-    time_stamp = dataset['time'][time_index].values
-    time_str = np.datetime_as_string(time_stamp, unit='s')
+#    time_stamp = dataset['time'][time_index].values
+#    time_str = np.datetime_as_string(time_stamp, unit='s')
     plt.title('Geostrophic Wind Speed ' + time_str)
     plt.savefig('windspeed' + time_str + '.png')
     plt.show()
@@ -615,10 +617,10 @@ def plot_vort(vort):
     plt.savefig("abs_vort"+time_str+".png")
     plt.show()
 
-def plot_vort_v2(dataset, time_index):
+def plot_vort_v2(dataset, time_index, time_str):
 
-    time_stamp = dataset['time'][time_index].values
-    time_str = np.datetime_as_string(time_stamp, unit='s')
+#    time_stamp = dataset['time'][time_index].values
+#    time_str = np.datetime_as_string(time_stamp, unit='s')
     vort = dataset['abs_vorticity'][time_index].values
     print("plot vort: min abs vort:", np.min(vort))
     #
@@ -663,11 +665,11 @@ def plot_rel_vort(vort): # plot relative voriticity
     plt.savefig("rel_vort"+dt_str+".png")
     plt.show()
 
-def plot_rel_vort_v2(dataset, time_index):
+def plot_rel_vort_v2(dataset, time_index, time_str):
 
         
-    time_stamp = dataset['time'][time_index].values
-    time_str = np.datetime_as_string(time_stamp, unit='s')
+#    time_stamp = dataset['time'][time_index].values
+#    time_str = np.datetime_as_string(time_stamp, unit='s')
     vort = dataset['rel_vorticity'][time_index].values
 
     fig3a = plt.figure(figsize=(12,8))
@@ -693,12 +695,19 @@ def plot_all_fields(dataset):
     nsteps = len(steps)
     for time_index in range(0, nsteps):
 
-        plot_winds_v2(data,time_index) 
-        plot_speed_v2(data,time_index)
+        steps = dataset['step'].values
+        time_step = steps[time_index]
+        print("time index is ", time_index)
+        start_time = dataset['time'].values
+        time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
+        time_str = np.datetime_as_string(time_stamp, unit='s')
+
+        plot_winds_v2(data,time_index, time_str) 
+        plot_speed_v2(data,time_index, time_str)
         # plot the absolute  voriticity
-        plot_vort_v2(data,time_index)
+        plot_vort_v2(data,time_index, time_str)
         # plot relative vorticity
-        plot_rel_vort_v2(data,time_index)
+        plot_rel_vort_v2(data,time_index, time_str)
 
 # done making and saving plots.
 #
@@ -883,11 +892,11 @@ else:
         zeta = zeta3
         speed = speed3
         data['z500'][step] = geopot 
-#        data['wind_u'][step] = winds_u
-#        data['wind_v'][step] = winds_v
-#        data['rel_vorticity'][step] = zeta
-#        data['abs_vorticity'][step] = zeta + f
-#        data['speed'][step] = speed    
+        data['wind_u'][step] = winds_u
+        data['wind_v'][step] = winds_v
+        data['rel_vorticity'][step] = zeta
+        data['abs_vorticity'][step] = zeta + f
+        data['speed'][step] = speed    
 
 #    data.to_netcdf(dataset_file)
 #    print("Data written to ", dataset_file)
