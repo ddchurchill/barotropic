@@ -369,7 +369,7 @@ def plot_winds(wind_data):
 
     plt.show()
 
-def plot_winds_v2(dataset, time_index, time_str):
+def plot_winds_v2(dataset, time_index, time_str, showplot):
 
 #    time_stamp = dataset['time'][time_index].values
 #    steps = dataset['step'].values
@@ -381,7 +381,7 @@ def plot_winds_v2(dataset, time_index, time_str):
 #    dt_str = np.datetime_as_string(time_stamp, unit='s')
 #
 
-    print("plot winds v2: time stamp ", dt_str)
+    print("plot winds v2: time stamp ", time_str)
     steps = dataset['step'].values
     
 #    print("plot winds v23: time = ", time_stamp)
@@ -415,7 +415,11 @@ def plot_winds_v2(dataset, time_index, time_str):
     plt.title('Geopotential and Geostrophic Wind Vectors, ' + time_str)
 #    plt.savefig('winds'+time_str+'.png')
 
-    plt.show()
+    if showplot:
+        plt.show()
+    plt.close()
+    
+    
 #
 def compute_trajectories(dataset, start_time, deltat, nsteps):
     trajectory_file = 'trajectories.npz' # numpy compressed file
@@ -567,7 +571,7 @@ def plot_trajectories(trajectories, timestamps):
     plt.savefig(file_name)
     plt.show()
 
-def plot_speed_v2(dataset, time_index, time_str):
+def plot_speed_v2(dataset, time_index, time_str, showplot):
 
     fig2 = plt.figure(figsize=(12, 8))
      
@@ -589,7 +593,10 @@ def plot_speed_v2(dataset, time_index, time_str):
 #    time_str = np.datetime_as_string(time_stamp, unit='s')
     plt.title('Geostrophic Wind Speed ' + time_str)
     plt.savefig('windspeed' + time_str + '.png')
-    plt.show()
+    if showplot:
+        plt.show()
+    plt.close()
+    
 
 def plot_vort(vort):
         
@@ -615,9 +622,11 @@ def plot_vort(vort):
     time_str = np.datetime_as_string(time_stamp, unit='s')
     plt.title('absolute vorticity ' + time_str)
     plt.savefig("abs_vort"+time_str+".png")
-    plt.show()
-
-def plot_vort_v2(dataset, time_index, time_str):
+    if showplot:
+        plt.show()
+    plt.close()
+    
+def plot_vort_v2(dataset, time_index, time_str, showplot):
 
 #    time_stamp = dataset['time'][time_index].values
 #    time_str = np.datetime_as_string(time_stamp, unit='s')
@@ -641,7 +650,9 @@ def plot_vort_v2(dataset, time_index, time_str):
     plt.colorbar(label='vorticity')
     plt.title('absolute vorticity ' + time_str)
     plt.savefig("abs_vort"+time_str+".png")
-    plt.show()
+    if showplot:
+        plt.show()
+    plt.close()
 
 def plot_rel_vort(vort): # plot relative voriticity
         
@@ -661,11 +672,11 @@ def plot_rel_vort(vort): # plot relative voriticity
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
     plt.colorbar(label='vorticity')
-    plt.title('relative vorticity ' + dt_str)
+    plt.title('relative vorticity ' )
     plt.savefig("rel_vort"+dt_str+".png")
     plt.show()
 
-def plot_rel_vort_v2(dataset, time_index, time_str):
+def plot_rel_vort_v2(dataset, time_index, time_str, showplot):
 
         
 #    time_stamp = dataset['time'][time_index].values
@@ -686,13 +697,14 @@ def plot_rel_vort_v2(dataset, time_index, time_str):
     plt.colorbar(label='vorticity')
     plt.title('relative vorticity ' + time_str)
     plt.savefig("rel_vort"+time_str+".png")
-    plt.show()
+    if showplot:
+        plt.show()
+    plt.close()
     
-def plot_all_fields(dataset):
+def plot_all_fields(dataset, nsteps, showplot):
     # plot the fields for all time periods
 # Create a new map projection
     steps = dataset['step'].values
-    nsteps = len(steps)
     for time_index in range(0, nsteps):
 
         steps = dataset['step'].values
@@ -702,12 +714,12 @@ def plot_all_fields(dataset):
         time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
         time_str = np.datetime_as_string(time_stamp, unit='s')
 
-        plot_winds_v2(data,time_index, time_str) 
-        plot_speed_v2(data,time_index, time_str)
+        plot_winds_v2(data,time_index, time_str, showplot) 
+        plot_speed_v2(data,time_index, time_str, showplot)
         # plot the absolute  voriticity
-        plot_vort_v2(data,time_index, time_str)
+        plot_vort_v2(data,time_index, time_str, showplot)
         # plot relative vorticity
-        plot_rel_vort_v2(data,time_index, time_str)
+        plot_rel_vort_v2(data,time_index, time_str, showplot)
 
 # done making and saving plots.
 #
@@ -817,6 +829,9 @@ def plot_traj_timeline(trajectory):
 # main program:
 # Read winds and vorticity from NetCDF file if it exists. Else create it.
 #
+# repeat for each step up to 48 hours out.
+maxsteps = 48  # maximum number of time steps we want to analyze
+
 dataset_file = 'vortdata_steps.nc'
 if os.path.exists(dataset_file):
     data = xr.open_dataset(dataset_file)
@@ -862,9 +877,7 @@ else:
     )
     # repeat for each time step up to 2 days
     # read in the data, compute winds and vorticity, add to dataset
-#    time_periods = start_time + steps.values
-# 4 steps = 4 hourly plots
-    for step in range(0,4):
+    for step in range(0,maxsteps):
         time_step = steps[step].values
         print("time step is ", time_step)
         time_stamp = np.datetime64(start_time + pd.Timedelta(hours=step))
@@ -872,23 +885,8 @@ else:
         print("time stamp ", dt_str)
         geopot = baro_fcst(start_time, steps[step])  # read in height field from data file.
 
-        # generate geopotential field on the at lon grid
-        # these are test geopotential fields
-        #
-        #geopot = ridge_and_trough(lon,lat)
-        #geopot = zonal_wind(lon,lat)  # create a westerly wind only
-        #geopot = north_wind(lon,lat)  # create a westerly wind only
-        # Calculate the geostrophic wind components and vorticity
-        #U_g, V_g, vorticity = wind_and_vorticity(lon_grid, lat_grid, \
-            # dz_dphi_algebraic, dz_dtheta_algebraic, lat_spacing, lon_spacing)
-
-        #winds2, zeta2, speed2 = prescribe_winds2() # uses my differences code
         winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
         #
-        # use the gradient calls
-        #
-        #    winds, zeta, speed = prescribe_winds() # numpy gradient method
-        #    relative_vorticity = zeta2 # use my differences code
         zeta = zeta3
         speed = speed3
         data['z500'][step] = geopot 
@@ -898,13 +896,13 @@ else:
         data['abs_vorticity'][step] = zeta + f
         data['speed'][step] = speed    
 
-#    data.to_netcdf(dataset_file)
-#    print("Data written to ", dataset_file)
+    data.to_netcdf(dataset_file)
+    print("Data written to ", dataset_file)
 
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-plot_all_fields(data)
+plot_all_fields(data, maxsteps, False)
 
 # Plotting the trajectories
 #
