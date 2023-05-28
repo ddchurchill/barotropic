@@ -17,7 +17,7 @@ import scipy.interpolate
 import xarray as xr
 
 from velocity import Velocity as vel
-from trajectory import Trajectory 
+#from trajectory import Trajectory 
 #from traject import euler
 #from traject import huen
 from diff import *
@@ -25,6 +25,10 @@ from traject_constants import *
 from plot_traject_arrows import *
 # constants
 
+def get_timestamp(start_time, time_step):
+    time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_step))
+    dt_str = np.datetime_as_string(time_stamp, unit='s')
+    return dt_str, time_stamp
 
 
 def wind_and_vorticity(lon_grid, lat_grid, z_field, lat_spacing, lon_spacing):
@@ -493,7 +497,8 @@ def plot_one_trajectory(traj, filename):
     title = "start:  {:.2f},{:.2f}, end: {:.2f},{:.2f}".\
         format(t.start_lat, t.start_lon, t.last_lat, t.last_lon)
     start_str = np.datetime_as_string(t.start_time, unit='s')
-    stop_str =  np.datetime_as_string(t.stop_time, unit='s')
+#    stop_str =  np.datetime_as_string(t.stop_time, unit='s')
+    stop_str =  str(t.stop_time)
     title = title + "\n" + start_str + " to " + stop_str
     line1 = "Begin: {:.2f}, {:.2f}, ".format(t.start_lat,t.start_lon)
     line2 = "End: {:.2f}, {:.2f}, ".format(t.last_lat,t.last_lon)
@@ -545,11 +550,11 @@ def plot_trajectories(trajectories):
 #
     color_index = 0
     start_time = trajectories[0].start_time
-    last_time =  trajectories[0].stop_time
-    start_str = str(start_time)
-    last_str = str(last_time)
-#    start_str = np.datetime_as_string(start_time, unit='s')
-#    last_str = np.datetime_as_string(last_time, unit='s')
+    last_time =  trajectories[-1].stop_time
+#    start_str = str(start_time)
+#    last_str = str(last_time)
+    start_str = np.datetime_as_string(start_time, unit='s')
+    last_str = np.datetime_as_string(last_time, unit='s')
 
     title_text = "Trajectories, " + start_str + " to " + last_str
     print(title_text)
@@ -874,8 +879,8 @@ else:
     for step in range(0,maxsteps):
         time_step = steps[step].values
         print("time step is ", time_step)
-        time_stamp = np.datetime64(start_time + pd.Timedelta(hours=step))
-        dt_str = np.datetime_as_string(time_stamp, unit='s')
+
+        dt_str, time_stamp = get_timestamp(start_time, step)
         print("time stamp ", dt_str)
         geopot = baro_fcst(start_time, steps[step])  # read in height field from data file.
 
@@ -912,10 +917,13 @@ dt_hours = 1 # time step in hours
 nsteps = 48 # number of step to integrate over
 
 deltat = dt_hours * 3600 # time step in seconds
+print("Computing trajectories")
 trajectories = compute_trajectories(data, start_time, deltat, nsteps)
 # plot trajectoriea at given time periods
 
-
+print("Trajectory times:")
+print(trajectories[0].start_time, trajectories[0].stop_time)
+print("Plotting trajectories")
 plot_trajectories(trajectories)
 #
 # interpolate the vorticity to each trajectory
@@ -928,7 +936,7 @@ for i, t in enumerate(trajectories):
     filename = "tstep_" + str(dt_hours) + "hour" + str(i)
     
     plot_one_trajectory(t,filename)
-#    print("saved ", filename)
+    print("saved ", filename)
 
 
 

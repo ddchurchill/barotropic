@@ -1,19 +1,24 @@
 import numpy as np
+import pandas as pd
 from traject_constants import *
 from trajectorypoint import *
 from trajectory_v2 import *
 from velocity import Velocity
+def get_timestamp(start_time, time_step):
+    time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_step))
+    dt_str = np.datetime_as_string(time_stamp, unit='s')
+    return dt_str, time_stamp
 
 
 # get wind and vorticity interpolating in space linearly
 def getwind_v4(ds, lat, lon, step):
 
-    wind_u = ds['wind_u'][step].interp(lat=lat, lon=lon, method='linear')
-    wind_v = ds['wind_v'][step].interp(lat=lat, lon=lon, method='linear')
+    wind_u = ds['wind_u'][step].interp(lat=lat, lon=lon, method='slinear')
+    wind_v = ds['wind_v'][step].interp(lat=lat, lon=lon, method='slinear')
     return wind_u, wind_v
 def getvort_v4(ds, lat, lon, step):
     vort   = ds['abs_vorticity'][step].interp(lat=lat, lon=lon, \
-                    method='linear')
+                    method='slinear')
     return vort
 
 #
@@ -35,8 +40,11 @@ def huen_v4(dataset, lat0, lon0, nsteps, deltat):
     # deltat is the time step in seconds between trajectory nodes.
 
     # lat0 and lon0 are the starting  point of the trajectory
-    trajectory = Trajectory_v2(lat0, lon0, deltat, 0)
-
+    start_time_stamp = dataset['time'].values
+    stop_time_str, stop_time_stamp = get_timestamp(start_time_stamp, nsteps)
+    print("Huenv4 stop time:", stop_time_str,  stop_time_stamp)
+    trajectory = Trajectory_v2(lat0, lon0, deltat, \
+                               start_time_stamp, stop_time_stamp)
     lat1 = lat0
     lon1 = lon0  
 # iterate through the timestamps, noting the last one terminates the
@@ -85,7 +93,8 @@ def huen_v4(dataset, lat0, lon0, nsteps, deltat):
         dx = lon2 - lon1
         dy = lat2 - lat1  # used for plotting trajectories
         # append the updated lat and lon to the trajectory object
-        
+        dt_str, time_stamp = get_timestamp(start_time_stamp, timeindex)
+
         point = TrajectoryPoint(lat1, lon1, dx, dy, timeindex)
         # interpolate to determine vorticity at this point.
 #        point.vort = dataset['abs_vorticity'].interp(lat=point.lat, \
@@ -99,7 +108,6 @@ def huen_v4(dataset, lat0, lon0, nsteps, deltat):
         #update the last position of the trajectory
         trajectory.last_lat = lat2
         trajectory.last_lon = lon2
-        trajectory.stop_time = next_time
         # advance to the next point
         lat1 = lat2
         lon1 = lon2 
@@ -107,12 +115,10 @@ def huen_v4(dataset, lat0, lon0, nsteps, deltat):
 # add the final point to the trajectory
 #
     point = TrajectoryPoint(trajectory.last_lat, trajectory.last_lon,\
-                            0., 0., trajectory.stop_time)
-#    point.vort = dataset['abs_vorticity'].interp(lat=point.lat, \
-#                                                     lon=point.lon, \
-#                                                 time=point.timestamp)
-    point.vort = getvort_v4(dataset,point.lat, point.lon, point.timestamp)
-#    point.vort = getvort(dataset,point.lat, point.lon, point.timestamp)
+                            0., 0., timeindex)
+
+    point.vort = getvort_v4(dataset,point.lat, point.lon, timeindex)
+
     trajectory.points.append(point)
     trajectory.length += 1
 #
