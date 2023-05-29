@@ -948,25 +948,18 @@ trajectories = compute_trajectories(data, start_time, deltat, nsteps)
 
 print("Trajectory times:")
 print(trajectories[0].start_time, trajectories[0].stop_time)
-for i, t in enumerate(trajectories):
-    print(i, t.length, t.start_time, t.stop_time)
-    for p in t.points:
-        print("\t lat:", float(p.lat), " lon:", float(p.lon),
-              " dx:", float(p.dx), " dy: ", float(p.dy))
+#for i, t in enumerate(trajectories):
+#    print(i, t.length, t.start_time, t.stop_time)
+#    for p in t.points:
+#        print("\t lat:", float(p.lat), " lon:", float(p.lon),
+#              " dx:", float(p.dx), " dy: ", float(p.dy))
 print("Plotting trajectories")
 plot_trajectories(trajectories)
 #
-# interpolate the vorticity to each trajectory
-#
-#plot_traj_timeline(trajectories[10])
-
-#vort_trajectories = interp_vorticity(data, trajectories)
-
-#for i, t in enumerate(trajectories):
-#    filename = "tstep_" + str(dt_hours) + "hour" + str(i)
-#    
-#    plot_one_trajectory(t,filename)
-#    print("saved ", filename)
+for i, t in enumerate(trajectories):
+    filename = "tstep_" + str(dt_hours) + "hour" + str(i)
+    plot_one_trajectory(t,filename)
+    print("saved ", filename)
 
 
 
