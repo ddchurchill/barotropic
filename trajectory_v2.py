@@ -1,8 +1,11 @@
 class Trajectory_v2:  # revised trajectory class
+    def __init__(self,data):
+        self.data = data
     def __init__(self):
         self.points = [TrajectoryPoint() for _ in range(0)]
         self.length = 0
-    def __init__(self, lat0, lon0, deltat, start_time, stop_time):
+    def __init__(self, lat0:float, lon0:float, deltat:float,
+                 start_time, stop_time):
         self.points = [TrajectoryPoint() for _ in range(0)]
         self.length = 0
         self.start_lat = lat0
