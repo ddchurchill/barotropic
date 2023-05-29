@@ -180,7 +180,7 @@ f = 2 * OMEGA * np.sin(lat_rad)  # Coriolis parameter
 
 # Define the geopotential field with two ridges in the northern hemisphere and two ridges in the southern hemisphere
 # north pacific
-def ridge_and_trough(lon,lat):
+def ridge_and_trough():
     decay = 10
     center_lat = 40
     r1 = np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 120) / decay) ** 2)
@@ -188,9 +188,9 @@ def ridge_and_trough(lon,lat):
 
     r3 = - np.exp(-((lat - center_lat) / decay) ** 2 - ((lon + 80) / decay) ** 2)
 
-    z = ((r1 + r3) * 100 + 5000) * GRAVITY
+    z = ((r1 + r3) * 1000 + 5000) 
 
-    return ((r1 + r3) * 100 + 5000) * GRAVITY
+    return z
 
 def zonal_wind(lon,lat):  # make an east-west wind
 
@@ -865,7 +865,7 @@ def plot_traj_timeline(trajectory):
 # Read winds and vorticity from NetCDF file if it exists. Else create it.
 #
 # repeat for each step up to 48 hours out.
-maxsteps = 2  # maximum number of time steps we want to analyze
+maxsteps = 48  # maximum number of time steps we want to analyze
 
 dataset_file = 'vortdata_steps.nc'
 if os.path.exists(dataset_file):
@@ -924,7 +924,8 @@ else:
         # query the height data from the dataset
         geopot = baro_fcst(start_time, steps[step]) 
 #        geopot = south_wind_v2(geopot, lat_lin, lon_lin)
-        geopot = north_wind_v2(geopot, lat_lin, lon_lin)
+#        geopot = north_wind_v2(geopot, lat_lin, lon_lin)
+        geopot = ridge_and_trough()
         winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
         #
         zeta = zeta3
@@ -942,7 +943,7 @@ else:
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-plot_all_fields(data, maxsteps, True)
+plot_all_fields(data, maxsteps, False)
 
 # Plotting the trajectories
 #
@@ -955,7 +956,7 @@ start_time = data['time']
 #
 
 dt_hours = 1 # time step in hours
-nsteps = 2 # number of step to integrate over
+nsteps = 48 # number of step to integrate over
 
 deltat = dt_hours * 3600 # time step in seconds
 print("Computing trajectories")
