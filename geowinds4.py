@@ -251,6 +251,21 @@ def south_wind_v2(z, lats, lons):
                 value = max_z
             z[i][j] = value
     return z
+def north_wind_v2(z, lats, lons):
+    max_z = 5600
+    min_z = 5000
+    left_lon = -120
+    right_lon = -100
+    scale = - (max_z - min_z)/(right_lon - left_lon)
+    for i, lat in enumerate(lats):
+        for j, lon in enumerate(lons):
+            if lon < left_lon:
+                z[i,j] = max_z
+            elif left_lon <= lon < right_lon:
+                z[i,j] = min_z + scale * (lon - right_lon)
+            else:
+                z[i,j] = min_z
+    return z
 
 
     
@@ -908,7 +923,8 @@ else:
 
         # query the height data from the dataset
         geopot = baro_fcst(start_time, steps[step]) 
-        geopot = south_wind_v2(geopot, lat_lin, lon_lin)
+#        geopot = south_wind_v2(geopot, lat_lin, lon_lin)
+        geopot = north_wind_v2(geopot, lat_lin, lon_lin)
         winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
         #
         zeta = zeta3
