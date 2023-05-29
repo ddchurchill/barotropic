@@ -232,7 +232,28 @@ def north_wind(lon, lat):
             z[:, i] = max_z
 
     return z
+#
+# overwrite the dataset height values with test data
+#
+def south_wind_v2(z, lats, lons):
+    max_z = 5600
+    min_z = 5000
+    left_lon = -120
+    right_lon = -100
+    for i, lat in enumerate(lats):
+        for j, lon in enumerate(lons):
+            if lon < -120:
+                value = min_z
+            elif -120 <= lon < -100:
+                value = min_z + (max_z - min_z) * \
+                    (lon - left_lon) / (right_lon - left_lon)
+            else:
+                value = max_z
+            z[i][j] = value
+    return z
 
+
+    
 # get barotropic forecast data from file
 def baro_fcst(forecast_init_time, step):
     print("forecast time:", forecast_init_time)
@@ -243,22 +264,22 @@ def baro_fcst(forecast_init_time, step):
         "lon": slice(180+min_lon, 180+max_lon)
     })['z500'].values
     
-    print("baro min height:", np.min(baro))
-    print("baro max height:", np.max(baro))      
+#    print("baro min height:", np.min(baro))
+#    print("baro max height:", np.max(baro))      
 
     # check the lat and lon range
-    lats = fc_ds_baro.sel({
-        "time": forecast_init_time,
-        "step": step,
-        "lat": slice(max_lat, min_lat),
-        "lon": slice(180+min_lon, 180+max_lon)
-    })['lat'].values
-    lons = fc_ds_baro.sel({
-        "time": forecast_init_time,
-        "step": step,
-        "lat": slice(max_lat, min_lat),
-        "lon": slice(180+min_lon, 180+max_lon)
-    })['lon'].values
+#    lats = fc_ds_baro.sel({
+#        "time": forecast_init_time,
+#        "step": step,
+#        "lat": slice(max_lat, min_lat),
+#        "lon": slice(180+min_lon, 180+max_lon)
+#    })['lat'].values
+#    lons = fc_ds_baro.sel({
+#        "time": forecast_init_time,
+#        "step": step,
+#        "lat": slice(max_lat, min_lat),
+#        "lon": slice(180+min_lon, 180+max_lon)
+#    })['lon'].values
 #    print("Baro_fcst lats:", np.flip(lats))
 #    print("Baro_fcst lons:", np.flip(lons))
     #flip the data around the latitude axis, as it is stored in the
@@ -299,8 +320,8 @@ def prescribe_winds3():
 #
     ug = -  dphidmu * np.cos(lat_rad)/EARTH_RADIUS /f
     vg =  dphidlambda /f
-# no longer sending complex vectpor. return components instead
-#    wind_vector = np.vectorize(complex)(ug,vg)
+
+    # compute wind speed
     speed = np.sqrt(ug*ug + vg*vg)
     return ug, vg, zeta,speed
 
@@ -818,7 +839,7 @@ def plot_traj_timeline(trajectory):
     # Plot on the second subplot
 #    axs[1].plot(x, y2)
     axs[1].set_title('Plot 2')
-
+    
     # Adjust spacing between subplots
     plt.tight_layout()
 
@@ -829,7 +850,7 @@ def plot_traj_timeline(trajectory):
 # Read winds and vorticity from NetCDF file if it exists. Else create it.
 #
 # repeat for each step up to 48 hours out.
-maxsteps = 48  # maximum number of time steps we want to analyze
+maxsteps = 2  # maximum number of time steps we want to analyze
 
 dataset_file = 'vortdata_steps.nc'
 if os.path.exists(dataset_file):
@@ -874,6 +895,7 @@ else:
         coords={"time":start_time, "step": ("step", steps), \
                 "lat": ("lat",lat_lin), "lon": ("lon", lon_lin)}, \
     )
+
     # repeat for each time step up to 2 days
     # read in the data, compute winds and vorticity, add to dataset
     for step in range(0,maxsteps):
@@ -882,8 +904,11 @@ else:
 
         dt_str, time_stamp = get_timestamp(start_time, step)
         print("time stamp ", dt_str)
-        geopot = baro_fcst(start_time, steps[step])  # read in height field from data file.
+        # overwrite the height data with test data.
 
+        # query the height data from the dataset
+        geopot = baro_fcst(start_time, steps[step]) 
+        geopot = south_wind_v2(geopot, lat_lin, lon_lin)
         winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
         #
         zeta = zeta3
@@ -901,7 +926,7 @@ else:
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-#plot_all_fields(data, maxsteps, False)
+plot_all_fields(data, maxsteps, True)
 
 # Plotting the trajectories
 #
@@ -914,7 +939,7 @@ start_time = data['time']
 #
 
 dt_hours = 1 # time step in hours
-nsteps = 48 # number of step to integrate over
+nsteps = 2 # number of step to integrate over
 
 deltat = dt_hours * 3600 # time step in seconds
 print("Computing trajectories")
