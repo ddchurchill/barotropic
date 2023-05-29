@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import copy
 from traject_constants import *
 from trajectorypoint import *
 from trajectory_v2 import *
@@ -13,13 +14,16 @@ def get_timestamp(start_time, time_step):
 # get wind and vorticity interpolating in space linearly
 def getwind_v4(ds, lat, lon, step):
 
-    wind_u = ds['wind_u'][step].interp(lat=lat, lon=lon, method='slinear')
-    wind_v = ds['wind_v'][step].interp(lat=lat, lon=lon, method='slinear')
-    return wind_u, wind_v
+    wind_u = ds['wind_u'][step].interp(lat=lat, lon=lon, method='quadratic',
+                                       assume_sorted=True)
+    wind_v = ds['wind_v'][step].interp(lat=lat, lon=lon, method='quadratic',
+                                       assume_sorted=True)
+    return copy.copy(wind_u), copy.copy(wind_v)
 def getvort_v4(ds, lat, lon, step):
     vort   = ds['abs_vorticity'][step].interp(lat=lat, lon=lon, \
-                    method='slinear')
-    return vort
+                                              method='quadratic',
+                                              assume_sorted=True)
+    return copy.copy(vort)
 
 #
 # input the Xarray dataset, that can interpolated
@@ -39,10 +43,13 @@ def huen_v4(dataset, lat0, lon0, nsteps, deltat):
     #
     # deltat is the time step in seconds between trajectory nodes.
 
+
     # lat0 and lon0 are the starting  point of the trajectory
+    lat0:float; lat1:float; lon0: float; lon1: float
+    dx:float; dy:float
     start_time_stamp = dataset['time'].values
     stop_time_str, stop_time_stamp = get_timestamp(start_time_stamp, nsteps)
-    print("Huenv4 stop time:", stop_time_str,  stop_time_stamp)
+
     trajectory = Trajectory_v2(lat0, lon0, deltat, \
                                start_time_stamp, stop_time_stamp)
     lat1 = lat0
@@ -89,9 +96,14 @@ def huen_v4(dataset, lat0, lon0, nsteps, deltat):
         lat2 = lat1 + \
             0.5 * deltat *np.degrees((wind_v + wind_v_bar) / EARTH_RADIUS)
 
-            
+        # calculate change in distance. Used for plotting trajectories
+        # set to zero if in noise level
         dx = lon2 - lon1
-        dy = lat2 - lat1  # used for plotting trajectories
+        dy = lat2 - lat1
+        if np.abs(dx) < 1.e-6:
+            dx = 0
+        if np.abs(dy) < 1.e-6:
+            dy = 0
         # append the updated lat and lon to the trajectory object
         dt_str, time_stamp = get_timestamp(start_time_stamp, timeindex)
 

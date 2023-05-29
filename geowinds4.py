@@ -437,7 +437,7 @@ def plot_winds_v2(dataset, time_index, time_str, showplot):
     # Add a colorbar and title
     plt.colorbar(label='Geopotential')
     plt.title('Geopotential and Geostrophic Wind Vectors, ' + time_str)
-#    plt.savefig('winds'+time_str+'.png')
+    plt.savefig('winds'+time_str+'.png')
 
     if showplot:
         plt.show()
@@ -948,6 +948,11 @@ trajectories = compute_trajectories(data, start_time, deltat, nsteps)
 
 print("Trajectory times:")
 print(trajectories[0].start_time, trajectories[0].stop_time)
+for i, t in enumerate(trajectories):
+    print(i, t.length, t.start_time, t.stop_time)
+    for p in t.points:
+        print("\t lat:", float(p.lat), " lon:", float(p.lon),
+              " dx:", float(p.dx), " dy: ", float(p.dy))
 print("Plotting trajectories")
 plot_trajectories(trajectories)
 #
@@ -957,11 +962,11 @@ plot_trajectories(trajectories)
 
 #vort_trajectories = interp_vorticity(data, trajectories)
 
-for i, t in enumerate(trajectories):
-    filename = "tstep_" + str(dt_hours) + "hour" + str(i)
-    
-    plot_one_trajectory(t,filename)
-    print("saved ", filename)
+#for i, t in enumerate(trajectories):
+#    filename = "tstep_" + str(dt_hours) + "hour" + str(i)
+#    
+#    plot_one_trajectory(t,filename)
+#    print("saved ", filename)
 
 
 
