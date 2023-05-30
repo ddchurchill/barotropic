@@ -5,6 +5,8 @@ from traject_constants import *
 from trajectorypoint import *
 from trajectory_v2 import *
 from velocity import Velocity
+method='slinear' # interpolation method to use.
+# chose from linear, slinear, quadratic, cubic
 def get_timestamp(start_time, time_step):
     time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_step))
     dt_str = np.datetime_as_string(time_stamp, unit='s')
@@ -14,14 +16,14 @@ def get_timestamp(start_time, time_step):
 # get wind and vorticity interpolating in space linearly
 def getwind_v4(ds, lat, lon, step):
 
-    wind_u = ds['wind_u'][step].interp(lat=lat, lon=lon, method='quadratic',
+    wind_u = ds['wind_u'][step].interp(lat=lat, lon=lon, method=method,
                                        assume_sorted=True)
-    wind_v = ds['wind_v'][step].interp(lat=lat, lon=lon, method='quadratic',
+    wind_v = ds['wind_v'][step].interp(lat=lat, lon=lon, method=method,
                                        assume_sorted=True)
     return copy.copy(wind_u), copy.copy(wind_v)
 def getvort_v4(ds, lat, lon, step):
     vort   = ds['abs_vorticity'][step].interp(lat=lat, lon=lon, \
-                                              method='quadratic',
+                                              method=method,
                                               assume_sorted=True)
     return copy.copy(vort)
 
