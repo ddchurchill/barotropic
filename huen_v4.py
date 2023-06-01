@@ -7,6 +7,8 @@ from trajectory_v2 import *
 from velocity import Velocity
 method='slinear' # interpolation method to use.
 # chose from linear, slinear, quadratic, cubic
+#
+# get_timestamp - convert a starting time, and time_step in hours
 def get_timestamp(start_time, time_step):
     time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_step))
     dt_str = np.datetime_as_string(time_stamp, unit='s')
@@ -111,10 +113,6 @@ def huen_v4(dataset, lat0, lon0, nsteps, deltat):
 
         point = TrajectoryPoint(lat1, lon1, dx, dy, timeindex)
         # interpolate to determine vorticity at this point.
-#        point.vort = dataset['abs_vorticity'].interp(lat=point.lat, \
-#                                                     lon=point.lon, \
-#                                                 time=point.timestamp)
-#        point.vort = getvort(dataset, lat1, lon1, timestamp)
         point.vort = getvort_v4(dataset, lat1, lon1, timeindex)
         # add the point to the trajectory
         trajectory.points.append(point)
@@ -135,6 +133,10 @@ def huen_v4(dataset, lat0, lon0, nsteps, deltat):
 
     trajectory.points.append(point)
     trajectory.length += 1
+#
+# update the trajectory stopping time using last point in trajectory
+#
+    t_str, trajectory.stop_time = get_timestamp(trajectory.start_time, timeindex)
 #
 ## return the trajectory object
 ##                                                                                     

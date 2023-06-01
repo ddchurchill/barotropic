@@ -7,5 +7,5 @@ class TrajectoryPoint:
           self.dx :float = dx
           self.dy : float = dy
           self.vort : float =0
-          self.timestamp = timestamp
+          self.timestamp = timestamp # time step in nanoseconds
 

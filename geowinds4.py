@@ -112,22 +112,6 @@ def get_zeta(z, x, y):
             
      
 #
-# define the function that returns the wind vector at given lat and lon and time step,
-# as called by the euler() or huen() integration methods
-# TODO: time is not used here yet.
-def model_wind(lat, lon, time):
-
-#
-    # the interpolators are created in the main program, prior to calling this method
-#    print("model_wind lat lon:", lat, lon)
-    new_wind = wind_interpolator((lat,lon))
-#    print("model_wind new wind:", new_wind)
-    if new_wind is np.nan:
-        return np.nan
-    new_u = new_wind.real
-    new_v = new_wind.imag
-    return vel(new_u, new_v)  # this is the wind vector interpolated to the point
-#
 # interp_data - interpolate data from dataset
 # input: field - name of field to get
 # lat0: latitude of point
@@ -472,7 +456,7 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
         lon_range = range(min_lon + 5, max_lon -5, 10)
         hours = deltat/3600.  # number of hours in time step
         subtitle_text = "Time step = " + str(hours) + " hours"
-        elapsed = nsteps * hours
+#        elapsed = nsteps * hours
         trajectory_list = []
         index = 0
         for lat0 in lat_range:
@@ -861,6 +845,23 @@ def plot_traj_timeline(trajectory):
     # Display the subplots
     plt.show()
 
+#
+# interpolate the height data from the dataset at 1 deg lat
+# to new one at 0.5 deg
+def interp_z(ds, time, step, lats, lons):
+
+    h = np.empty((len(lats), len(lons)))
+    d = ds['z500'].sel(time=time, step=step)
+    for i, lat in enumerate(lats):
+        for j, lon in enumerate(lons):
+
+            z = d.interp(lat=lat, lon=lon, method='slinear')
+    
+            h[i][j] = z
+                
+                                        
+    return h
+
 # main program:
 # Read winds and vorticity from NetCDF file if it exists. Else create it.
 #
@@ -923,9 +924,13 @@ else:
 
         # query the height data from the dataset
         geopot = baro_fcst(start_time, steps[step]) 
+# interp_z is not working. dont use it.
+#        geopot = interp_z(fc_ds_baro, start_time, steps[step],\
+#                          lat_lin, lon_lin)
+# these test patterns do work.
 #        geopot = south_wind_v2(geopot, lat_lin, lon_lin)
 #        geopot = north_wind_v2(geopot, lat_lin, lon_lin)
-        geopot = ridge_and_trough()
+        # geopot = ridge_and_trough()
         winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
         #
         zeta = zeta3
@@ -964,7 +969,14 @@ trajectories = compute_trajectories(data, start_time, deltat, nsteps)
 # plot trajectoriea at given time periods
 
 print("Trajectory times:")
-print(trajectories[0].start_time, trajectories[0].stop_time)
+#
+# trajectory end time is start time plus nsteps hours
+start_time = trajectories[0].start_time
+start_time_str = np.datetime_as_string(start_time, unit='s')
+stop_time = np.datetime64(start_time + pd.Timedelta(hours=nsteps))
+stop_time_str =  np.datetime_as_string(stop_time, unit='s')
+
+print(start_time_str, stop_time_str)
 #for i, t in enumerate(trajectories):
 #    print(i, t.length, t.start_time, t.stop_time)
 #    for p in t.points:
