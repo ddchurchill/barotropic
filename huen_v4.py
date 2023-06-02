@@ -31,12 +31,13 @@ def getvort_v4(ds, lat, lon, step):
 
 #
 # input the Xarray dataset, that can interpolated
-def huen_v4(dataset, lat0, lon0, nsteps, deltat):
+def huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat):
     """
     input;
          dataset
          lat0 - starting latitude for trajectory
          lon0 - starting longitude for trajectory
+         start_step - starting time step for trajectory
          nsteps - number of time periods to integrate over
          deltat - time step in seconds
     output:
@@ -51,8 +52,9 @@ def huen_v4(dataset, lat0, lon0, nsteps, deltat):
     # lat0 and lon0 are the starting  point of the trajectory
     lat0:float; lat1:float; lon0: float; lon1: float
     dx:float; dy:float
-    start_time_stamp = dataset['time'].values
-    stop_time_str, stop_time_stamp = get_timestamp(start_time_stamp, nsteps)
+    initial_time = dataset['time'].values
+    start_time_str, start_time_stamp = get_timestamp(initial_time, start_step)
+    stop_time_str, stop_time_stamp = get_timestamp(initial_time, nsteps)
 
     trajectory = Trajectory_v2(lat0, lon0, deltat, \
                                start_time_stamp, stop_time_stamp)
@@ -60,7 +62,7 @@ def huen_v4(dataset, lat0, lon0, nsteps, deltat):
     lon1 = lon0  
 # iterate through the timestamps, noting the last one terminates the
 # the last node of the trajectory
-    for timeindex in range(0,nsteps):
+    for timeindex in range(start_step,nsteps):
         next_time = timeindex + 1
 
 #

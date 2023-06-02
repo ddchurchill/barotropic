@@ -459,11 +459,12 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
 #        elapsed = nsteps * hours
         trajectory_list = []
         index = 0
+        start_step = 0 # starting time step for trajectory
         for lat0 in lat_range:
             for lon0 in lon_range:
                 # compute the trajectory from the model winds
                 trajectory = \
-                    huen_v4(dataset, lat0, lon0, nsteps, deltat)
+                    huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat)
                 # append the parcel to the trajectory list
                 trajectory_list.append(trajectory)
 
@@ -500,16 +501,16 @@ def plot_one_trajectory(traj, filename, start_time, stop_time):
     # iterate throught the points in a trajectory,
     # plot an arrow head for each
     #
-    colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
+    colors = ['black', 'red', 'blue', 'orange','grey','green', 'purple']
 #
     color_index = 0
-
+    color_interval = 7
     for i, point in enumerate(traj.points):
 #        print(i, point.lat, point.lon, point.timestamp)
 #        i += 1
         # make the color of the trajecotry change every 6 time steps
         # and cycle round after running through the 7 colors
-        color_index = int((i / 6)) % 7  
+        color_index = int((i / color_interval)) % (color_interval + 1)  
         ax.arrow(point.lon, point.lat, point.dx, point.dy, \
 		  length_includes_head=True, head_length=1.0, \
 		  head_width=1.0, color=colors[color_index])
@@ -555,8 +556,14 @@ def plot_one_trajectory(traj, filename, start_time, stop_time):
     # get the list of vorticity values from this trajectory
     vort_list = [p.vort for p in traj.points]
     #   plot the time line versus the vorticity
-    ax2.plot(time_list, vort_list,color='red')
-
+#    ax2.plot(time_list, vort_list,color='red')
+    color_index = 0
+    for i in range(0, len(vort_list), color_interval):
+        plt.plot(time_list[i:i+color_interval+1], \
+                 vort_list[i:i+color_interval+1], \
+                 color=colors[color_index])
+        color_index += 1
+        color_index %= color_interval
     plt.tight_layout() # this is needed to prevent overlapping figures.
 
     plt.savefig(filename)
@@ -752,6 +759,7 @@ def plot_vort_advection(dataset, time_index, time_str, showplot):
     dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
 
     vadv = -(u * dzetadx + v*dzetady)
+    vadv[np.abs(vadv) < 1.e-16 ] = 0 # filter noise
     print("max value of vort advection is ", np.max(np.abs(vadv)))
     fig = plt.figure(figsize=(12,8))
     # Draw the continents and coastlines in white                                                                            
@@ -966,6 +974,7 @@ else:
 
     # repeat for each time step up to 2 days
     # read in the data, compute winds and vorticity, add to dataset
+# start with time step 1 - don't use 0, it is the initial data that is bad
     for step in range(0,maxsteps):
         time_step = steps[step].values
         print("time step is ", time_step)
@@ -1003,7 +1012,7 @@ else:
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-plot_all_fields(data, maxsteps, False)
+#plot_all_fields(data, maxsteps, False)
 
 # Plotting the trajectories
 #
@@ -1038,10 +1047,10 @@ print(start_time_str, stop_time_str)
 #        print("\t lat:", float(p.lat), " lon:", float(p.lon),
 #              " dx:", float(p.dx), " dy: ", float(p.dy))
 print("Plotting trajectories")
-#plot_trajectories(trajectories, start_time, stop_time)
+plot_trajectories(trajectories, start_time, stop_time)
 
 #
-plot_trajectories = False
+plot_trajectories = True
 if plot_trajectories:
     for i, t in enumerate(trajectories):
         filename = "tstep_" + str(dt_hours) + "hour" + str(i)
