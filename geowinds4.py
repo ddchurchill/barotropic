@@ -335,12 +335,12 @@ def prescribe_winds2():
     #
     ug = - GRAVITY *dzdy/f
     vg = GRAVITY * dzdx /f
-    wind_vector = np.vectorize(complex)(ug,vg)
+#    wind_vector = np.vectorize(complex)(ug,vg)
     speed = np.sqrt(ug*ug + vg*vg)
     dvdx, dvdy = centered_diff(vg, x, y)
     dudx, dudy = centered_diff(ug, x, y)
     zeta = dvdx - dudy
-    return wind_vector, zeta, speed
+    return ug, vg, zeta, speed
 
 def prescribe_winds(): 
     """
@@ -473,7 +473,7 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
         print("Wrote trajectories to ", trajectory_file)
     return trajectory_list
 #
-def plot_one_trajectory(traj, filename):
+def plot_one_trajectory(traj, filename, start_time, stop_time):
     """
     input: traj - a trajectory
            filename - name of file to write plot to
@@ -513,12 +513,16 @@ def plot_one_trajectory(traj, filename):
     ax2.set_ylim(0, 2.e-4)
     ax2.set_xlabel('Date Time')
     ax2.set_ylabel('Abs. Vorticity')
+    ax2.set_xlim(start_time, stop_time)
     t = traj
     title = "start:  {:.2f},{:.2f}, end: {:.2f},{:.2f}".\
         format(t.start_lat, t.start_lon, t.last_lat, t.last_lon)
-    start_str = np.datetime_as_string(t.start_time, unit='s')
-#    stop_str =  np.datetime_as_string(t.stop_time, unit='s')
-    stop_str =  str(t.stop_time)
+    start_str = np.datetime_as_string(start_time, unit='s')
+    # the string for the last time needs to show the final time in
+    # the trajectory, which may be shorter than nsteps, in those cases
+    # where the trajectory goes on the edge of the plot.
+    #
+    stop_str =  np.datetime_as_string(t.stop_time, unit='s')
     title = title + "\n" + start_str + " to " + stop_str
     line1 = "Begin: {:.2f}, {:.2f}, ".format(t.start_lat,t.start_lon)
     line2 = "End: {:.2f}, {:.2f}, ".format(t.last_lat,t.last_lon)
@@ -557,10 +561,12 @@ def plot_one_trajectory(traj, filename):
 #
 
     
-def plot_trajectories(trajectories):
+def plot_trajectories(trajectories, start_time, last_time):
     """
     input:
         trajectory list
+        start_time - timestamp of start of period
+        last_time - timestamp of end of period
     """
 
     fig4 = plt.figure(figsize=(12,8))
@@ -576,8 +582,6 @@ def plot_trajectories(trajectories):
     colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
 #
     color_index = 0
-    start_time = trajectories[0].start_time
-    last_time =  trajectories[-1].stop_time
 #    start_str = str(start_time)
 #    last_str = str(last_time)
     start_str = np.datetime_as_string(start_time, unit='s')
@@ -628,6 +632,7 @@ def plot_vort(vort):
         
     absolute_vort = vort + f
     print("plot vort: min abs vort:", np.min(absolute_vort))
+    print("plot vort: max abs vort:", np.max(absolute_vort))
     #
       
     fig3 = plt.figure(figsize=(12,8))
@@ -658,6 +663,8 @@ def plot_vort_v2(dataset, time_index, time_str, showplot):
 #    time_str = np.datetime_as_string(time_stamp, unit='s')
     vort = dataset['abs_vorticity'][time_index].values
     print("plot vort: min abs vort:", np.min(vort))
+    print("plot vort: max abs vort:", np.max(vort))
+
     #
       
     fig3 = plt.figure(figsize=(12,8))
@@ -669,7 +676,7 @@ def plot_vort_v2(dataset, time_index, time_str, showplot):
 
 #    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
 #    absolute_vort[absolute_vort >0.] = 0 # filter out positive values
-    m.contourf(x,y,vort, cmap='jet',levels=30)
+    m.contourf(x,y,vort, cmap='jet',levels=16, vmin=0., vmax=0.0003)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
@@ -693,7 +700,7 @@ def plot_rel_vort(vort): # plot relative voriticity
 # plot only the negative values of the relative vorticity to see where
 # they are. 
 #    vort[vort > .0] = 0
-    m.contourf(x,y,vort, cmap='jet',levels=30)
+    m.contourf(x,y,vort, cmap='jet',levels=15)
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
@@ -938,7 +945,10 @@ else:
 #        geopot = south_wind_v2(geopot, lat_lin, lon_lin)
 #        geopot = north_wind_v2(geopot, lat_lin, lon_lin)
         # geopot = ridge_and_trough()
-        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
+# verion 3 uses mu with gradient calls
+#        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
+        #        version 2 uses my centereed differences≈
+        winds_u, winds_v, zeta3, speed3 = prescribe_winds2()
         #
         zeta = zeta3
         speed = speed3
@@ -955,7 +965,7 @@ else:
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-#plot_all_fields(data, maxsteps, False)
+plot_all_fields(data, maxsteps, False)
 
 # Plotting the trajectories
 #
@@ -990,13 +1000,12 @@ print(start_time_str, stop_time_str)
 #        print("\t lat:", float(p.lat), " lon:", float(p.lon),
 #              " dx:", float(p.dx), " dy: ", float(p.dy))
 print("Plotting trajectories")
-#plot_trajectories(trajectories)
+plot_trajectories(trajectories, start_time, stop_time)
 
 #
 for i, t in enumerate(trajectories):
     filename = "tstep_" + str(dt_hours) + "hour" + str(i)
-    plot_one_trajectory(t,filename)
+    plot_one_trajectory(t,filename, start_time, stop_time)
     print("saved ", filename)
-    break;  # skip rest till tested.
 
 
