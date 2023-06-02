@@ -740,6 +740,38 @@ def plot_rel_vort_v2(dataset, time_index, time_str, showplot):
         plt.show()
     plt.close()
     
+def plot_vort_advection(dataset, time_index, time_str, showplot):
+
+        
+    zeta = dataset['abs_vorticity'][time_index].values
+    u = dataset['wind_u'][time_index].values
+    v = dataset['wind_v'][time_index].values
+    x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
+    y = EARTH_RADIUS * lat_rad
+    dzetadx = np.gradient(zeta, axis=1)/np.gradient(x, axis=1)
+    dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
+
+    vadv = -(u * dzetadx + v*dzetady)
+    print("max value of vort advection is ", np.max(np.abs(vadv)))
+    fig = plt.figure(figsize=(12,8))
+    # Draw the continents and coastlines in white                                                                            
+    m.drawcoastlines(linewidth=0.5, color='black')
+    m.drawcountries(linewidth=0.5, color='black')
+
+    x, y = m(lon, lat)
+
+    m.contourf(x,y,vadv, cmap='jet',levels=16, \
+               vmin=-2.e-8, vmax=2.e-8, extend='both')
+    # Add a colorbar and title                                                                                      
+    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
+    plt.colorbar(label='vorticity')
+    plt.title('vorticity advection ' + time_str)
+    plt.savefig("vort_adv"+time_str+".png")
+    if showplot:
+        plt.show()
+    plt.close()
+
 def plot_all_fields(dataset, nsteps, showplot):
     # plot the fields for all time periods
 # Create a new map projection
@@ -752,7 +784,7 @@ def plot_all_fields(dataset, nsteps, showplot):
         start_time = dataset['time'].values
         time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
         time_str = np.datetime_as_string(time_stamp, unit='s')
-
+        plot_vort_advection(data, time_index, time_str, showplot)
         plot_winds_v2(data,time_index, time_str, showplot) 
         plot_speed_v2(data,time_index, time_str, showplot)
         # plot the absolute  voriticity
@@ -971,7 +1003,7 @@ else:
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-#plot_all_fields(data, maxsteps, False)
+plot_all_fields(data, maxsteps, False)
 
 # Plotting the trajectories
 #
@@ -1009,9 +1041,11 @@ print("Plotting trajectories")
 #plot_trajectories(trajectories, start_time, stop_time)
 
 #
-for i, t in enumerate(trajectories):
-    filename = "tstep_" + str(dt_hours) + "hour" + str(i)
-    plot_one_trajectory(t,filename, start_time, stop_time)
-    print("saved ", filename)
+plot_trajectories = False
+if plot_trajectories:
+    for i, t in enumerate(trajectories):
+        filename = "tstep_" + str(dt_hours) + "hour" + str(i)
+        plot_one_trajectory(t,filename, start_time, stop_time)
+        print("saved ", filename)
 
 
