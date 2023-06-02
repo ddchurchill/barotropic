@@ -500,13 +500,19 @@ def plot_one_trajectory(traj, filename, start_time, stop_time):
     # iterate throught the points in a trajectory,
     # plot an arrow head for each
     #
-#    i = 0
-    for point in traj.points:
+    colors = ['black', 'red', 'blue', 'green','grey','orange', 'purple']
+#
+    color_index = 0
+
+    for i, point in enumerate(traj.points):
 #        print(i, point.lat, point.lon, point.timestamp)
 #        i += 1
+        # make the color of the trajecotry change every 6 time steps
+        # and cycle round after running through the 7 colors
+        color_index = int((i / 6)) % 7  
         ax.arrow(point.lon, point.lat, point.dx, point.dy, \
 		  length_includes_head=True, head_length=1.0, \
-		  head_width=1.0, color='red')
+		  head_width=1.0, color=colors[color_index])
 
     # plot a timeline of vorticity values     
 
@@ -965,7 +971,7 @@ else:
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-plot_all_fields(data, maxsteps, False)
+#plot_all_fields(data, maxsteps, False)
 
 # Plotting the trajectories
 #
@@ -1000,7 +1006,7 @@ print(start_time_str, stop_time_str)
 #        print("\t lat:", float(p.lat), " lon:", float(p.lon),
 #              " dx:", float(p.dx), " dy: ", float(p.dy))
 print("Plotting trajectories")
-plot_trajectories(trajectories, start_time, stop_time)
+#plot_trajectories(trajectories, start_time, stop_time)
 
 #
 for i, t in enumerate(trajectories):
