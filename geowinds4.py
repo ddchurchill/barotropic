@@ -535,9 +535,16 @@ def plot_one_trajectory(traj, filename):
     ax2.grid(axis='y', linestyle='--')
     ax2.grid(axis='x', linestyle='--')
 
-    time_list = [p.timestamp for p in traj.points]
+    time_steps = [p.timestamp for p in traj.points] # time steps in hours
+    # convert to date/time stamps,
+    time_list = []
+    for i, step in enumerate(time_steps):
+       time_str, timestamp = get_timestamp(start_time, step)
+       time_list.append(timestamp)
+       
+    # get the list of vorticity values from this trajectory
     vort_list = [p.vort for p in traj.points]
-#
+    #   plot the time line versus the vorticity
     ax2.plot(time_list, vort_list,color='red')
 
     plt.tight_layout() # this is needed to prevent overlapping figures.
@@ -948,7 +955,7 @@ else:
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-plot_all_fields(data, maxsteps, False)
+#plot_all_fields(data, maxsteps, False)
 
 # Plotting the trajectories
 #
@@ -983,12 +990,13 @@ print(start_time_str, stop_time_str)
 #        print("\t lat:", float(p.lat), " lon:", float(p.lon),
 #              " dx:", float(p.dx), " dy: ", float(p.dy))
 print("Plotting trajectories")
-plot_trajectories(trajectories)
+#plot_trajectories(trajectories)
+
 #
 for i, t in enumerate(trajectories):
     filename = "tstep_" + str(dt_hours) + "hour" + str(i)
     plot_one_trajectory(t,filename)
     print("saved ", filename)
-
+    break;  # skip rest till tested.
 
 
