@@ -444,7 +444,7 @@ def plot_winds_v2(dataset, time_index, time_str, showplot):
     
     
 #
-def compute_trajectories(dataset, start_time, deltat, nsteps):
+def compute_trajectories(dataset, start_time, start_step,deltat, nsteps):
     trajectory_file = 'trajectories.npz' # numpy compressed file
     if os.path.exists(trajectory_file):
         npdata = np.load(trajectory_file,allow_pickle=True)
@@ -459,7 +459,7 @@ def compute_trajectories(dataset, start_time, deltat, nsteps):
 #        elapsed = nsteps * hours
         trajectory_list = []
         index = 0
-        start_step = 0 # starting time step for trajectory
+
         for lat0 in lat_range:
             for lon0 in lon_range:
                 # compute the trajectory from the model winds
@@ -1029,7 +1029,9 @@ nsteps = 48 # number of step to integrate over
 
 deltat = dt_hours * 3600 # time step in seconds
 print("Computing trajectories")
-trajectories = compute_trajectories(data, start_time, deltat, nsteps)
+start_step = 0 # set the first time step we want after starting time
+trajectories = compute_trajectories(data, start_time, start_step,\
+                                    deltat, nsteps)
 # plot trajectoriea at given time periods
 
 print("Trajectory times:")
@@ -1039,13 +1041,9 @@ start_time = trajectories[0].start_time
 start_time_str = np.datetime_as_string(start_time, unit='s')
 stop_time = np.datetime64(start_time + pd.Timedelta(hours=nsteps))
 stop_time_str =  np.datetime_as_string(stop_time, unit='s')
-
+stop_time_str, stop_time = get_timestamp(start_time, start_step + nsteps)
 print(start_time_str, stop_time_str)
-#for i, t in enumerate(trajectories):
-#    print(i, t.length, t.start_time, t.stop_time)
-#    for p in t.points:
-#        print("\t lat:", float(p.lat), " lon:", float(p.lon),
-#              " dx:", float(p.dx), " dy: ", float(p.dy))
+
 print("Plotting trajectories")
 plot_trajectories(trajectories, start_time, stop_time)
 
