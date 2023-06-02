@@ -429,12 +429,12 @@ def plot_winds_v2(dataset, time_index, time_str, showplot):
     
     
     m.quiver(x[::5, ::5], y[::5, ::5], ug[::5, ::5], vg[::5, ::5], \
-         scale=2000, color='white')
+         scale=3000, color='black')
     
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     # Add a colorbar and title
-    plt.colorbar(label='Geopotential')
+    plt.colorbar(label='Geopotential (m)')
     plt.title('Geopotential and Geostrophic Wind Vectors, ' + time_str)
     plt.savefig('winds'+time_str+'.png')
 
@@ -625,60 +625,28 @@ def plot_speed_v2(dataset, time_index, time_str, showplot):
     x, y = m(lon, lat)
 
     speed = dataset['speed'][time_index].values
-    m.contourf(x,y,speed, cmap='jet',levels=30)
+    m.contourf(x,y,speed, cmap='jet',levels=20,\
+               vmin=0, vmax=80, extend='neither')
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     
     # Draw the geostrophic# Show the plot
     # Add a colorbar and title
-    plt.colorbar(label='Wind speed')
-#    time_stamp = dataset['time'][time_index].values
-#    time_str = np.datetime_as_string(time_stamp, unit='s')
+    cbar = plt.colorbar()
+    label='Wind Speed'
+    units = r'$m s^{-1}$'
+    cbar.set_label(f'{label} ({units})')
+
     plt.title('Geostrophic Wind Speed ' + time_str)
     plt.savefig('windspeed' + time_str + '.png')
     if showplot:
         plt.show()
     plt.close()
     
-
-def plot_vort(vort):
-        
-    absolute_vort = vort + f
-    print("plot vort: min abs vort:", np.min(absolute_vort))
-    print("plot vort: max abs vort:", np.max(absolute_vort))
-    #
-      
-    fig3 = plt.figure(figsize=(12,8))
-    # Draw the continents and coastlines in white                                                                            
-    m.drawcoastlines(linewidth=0.5, color='white')
-    m.drawcountries(linewidth=0.5, color='white')
-
-    x, y = m(lon, lat)
-
-#    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
-#    absolute_vort[absolute_vort >0.] = 0 # filter out positive values
-    m.contourf(x,y,absolute_vort, cmap='jet',levels=30)
-    # Add a colorbar and title                                                                                      
-    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
-    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
-    plt.colorbar(label='vorticity')
-    time_stamp = dataset['time'][time_index].values
-    time_str = np.datetime_as_string(time_stamp, unit='s')
-    plt.title('absolute vorticity ' + time_str)
-    plt.savefig("abs_vort"+time_str+".png")
-    if showplot:
-        plt.show()
-    plt.close()
     
 def plot_vort_v2(dataset, time_index, time_str, showplot):
 
-#    time_stamp = dataset['time'][time_index].values
-#    time_str = np.datetime_as_string(time_stamp, unit='s')
     vort = dataset['abs_vorticity'][time_index].values
-    print("plot vort: min abs vort:", np.min(vort))
-    print("plot vort: max abs vort:", np.max(vort))
-
-    #
       
     fig3 = plt.figure(figsize=(12,8))
     # Draw the continents and coastlines in white                                                                            
@@ -687,40 +655,21 @@ def plot_vort_v2(dataset, time_index, time_str, showplot):
 
     x, y = m(lon, lat)
 
-#    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
-#    absolute_vort[absolute_vort >0.] = 0 # filter out positive values
-    m.contourf(x,y,vort, cmap='jet',levels=16, vmin=0., vmax=0.0003)
+    m.contourf(x,y,vort, cmap='jet',levels=25,\
+               vmin=0., vmax=5.e-4, extend='neither')
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
-    plt.colorbar(label='vorticity')
-    plt.title('absolute vorticity ' + time_str)
+    cbar = plt.colorbar()
+    label='Vorticity'
+    units = r'$s^{-1}$'
+    cbar.set_label(f'{label} ({units})')
+    plt.title('Absolute Vorticity ' + time_str)
     plt.savefig("abs_vort"+time_str+".png")
     if showplot:
         plt.show()
     plt.close()
 
-def plot_rel_vort(vort): # plot relative voriticity
-        
-    fig3a = plt.figure(figsize=(12,8))
-    # Draw the continents and coastlines in white                                                                            
-    m.drawcoastlines(linewidth=0.5, color='white')
-    m.drawcountries(linewidth=0.5, color='white')
-
-    x, y = m(lon, lat)
-
-#    m.contourf(x,y,absolute_vort, cmap='jet',levels=30,vmin=0.,vmax=1.e-3)
-# plot only the negative values of the relative vorticity to see where
-# they are. 
-#    vort[vort > .0] = 0
-    m.contourf(x,y,vort, cmap='jet',levels=15)
-    # Add a colorbar and title                                                                                      
-    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
-    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
-    plt.colorbar(label='vorticity')
-    plt.title('relative vorticity ' )
-    plt.savefig("rel_vort"+dt_str+".png")
-    plt.show()
 
 def plot_rel_vort_v2(dataset, time_index, time_str, showplot):
 
@@ -736,12 +685,21 @@ def plot_rel_vort_v2(dataset, time_index, time_str, showplot):
 
     x, y = m(lon, lat)
 
-    m.contourf(x,y,vort, cmap='jet',levels=30)
+#    m.contourf(x,y,vort, cmap='jet',levels=16, \
+#               vmin=-6.e-4,vmax=6.e-4, extend='neither')
+    m.contourf(x,y,vort, cmap='jet',levels=16)
+ 
+
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
-    plt.colorbar(label='vorticity')
-    plt.title('relative vorticity ' + time_str)
+
+    cbar = plt.colorbar()
+    label='Vorticity'
+    units = r'$s^{-1}$'
+    cbar.set_label(f'{label} ({units})')
+
+    plt.title('Relative Vorticity ' + time_str)
     plt.savefig("rel_vort"+time_str+".png")
     if showplot:
         plt.show()
@@ -759,7 +717,6 @@ def plot_vort_advection(dataset, time_index, time_str, showplot):
     dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
 
     vadv = -(u * dzetadx + v*dzetady)
-    vadv[np.abs(vadv) < 1.e-16 ] = 0 # filter noise
     print("max value of vort advection is ", np.max(np.abs(vadv)))
     fig = plt.figure(figsize=(12,8))
     # Draw the continents and coastlines in white                                                                            
@@ -768,13 +725,16 @@ def plot_vort_advection(dataset, time_index, time_str, showplot):
 
     x, y = m(lon, lat)
 
-    m.contourf(x,y,vadv, cmap='jet',levels=16, \
-               vmin=-2.e-8, vmax=2.e-8, extend='both')
+    m.contourf(x,y,vadv, cmap='jet',levels=20, \
+               vmin=-2.e-8, vmax=2.e-8, extend='neither')
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
-    plt.colorbar(label='vorticity')
-    plt.title('vorticity advection ' + time_str)
+    label='Vorticity Advection'
+    units = r'$s^{-2}$'
+    cbar = plt.colorbar()
+    cbar.set_label(f'{label} ({units})')
+    plt.title('Vorticity Advection ' + time_str)
     plt.savefig("vort_adv"+time_str+".png")
     if showplot:
         plt.show()
@@ -1008,11 +968,20 @@ else:
 
     data.to_netcdf(dataset_file)
     print("Data written to ", dataset_file)
+#
+# print out max absolutate values of fields
+#
+print("max wind speed:", np.max(data['speed'].values))
+print('min abs vorticity:', np.min(data['abs_vorticity'].values))
+print("max abs vorticity:", np.max(data['abs_vorticity'].values))
+print("max abs rel vorticity:", np.max(np.abs(data['rel_vorticity'].values)))
 
+      
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-#plot_all_fields(data, maxsteps, False)
+show_plots = True
+plot_all_fields(data, maxsteps, show_plots)
 
 # Plotting the trajectories
 #
@@ -1029,7 +998,10 @@ nsteps = 48 # number of step to integrate over
 
 deltat = dt_hours * 3600 # time step in seconds
 print("Computing trajectories")
-start_step = 0 # set the first time step we want after starting time
+#
+# set the first time step we want the trajecotreis to use after the
+# initialization time. Each step is 1 hour
+start_step = 0
 trajectories = compute_trajectories(data, start_time, start_step,\
                                     deltat, nsteps)
 # plot trajectoriea at given time periods
@@ -1039,8 +1011,6 @@ print("Trajectory times:")
 # trajectory end time is start time plus nsteps hours
 start_time = trajectories[0].start_time
 start_time_str = np.datetime_as_string(start_time, unit='s')
-stop_time = np.datetime64(start_time + pd.Timedelta(hours=nsteps))
-stop_time_str =  np.datetime_as_string(stop_time, unit='s')
 stop_time_str, stop_time = get_timestamp(start_time, start_step + nsteps)
 print(start_time_str, stop_time_str)
 
