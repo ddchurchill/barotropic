@@ -861,31 +861,40 @@ def plot_vort_terms(dataset, deltat , showplot):
 
 
     con1 = ax[0,0].contourf(lon_lin, lat_lin,error,\
+                            vmin=-2.e-8, vmax=2.e-8, \
                             levels=16, cmap='jet', \
                             transform=ccrs.PlateCarree())
 
-    plt.colorbar(con1, ax=ax[1,0], orientation='horizontal')
-    
     term0 = r'$\epsilon = \frac{\delta \zeta}{\delta  t} + \overrightarrow{V} \cdot \nabla (\zeta + f)$'
-    term1 = r'$\frac{\delta \zeta}{\delta t}$'
-    term2 = r'$ - \overrightarrow{V} \cdot \nabla \zeta$'
-    term3 = r'$ - \overrightarrow{V} \cdot \nabla f$'
-    
-    ax[0,0].set_title('Error: '+ term0 )
+
+    # plot error - difference from zero
+    vmin = -1.e-8
+    vmax= 1.e-8
+    con1 = ax[0,0].contourf(lon_lin, lat_lin, error, cmap='jet', \
+                            vmin=vmin, vmax=vmax)
     plt.colorbar(con1, ax=ax[0,0], orientation='horizontal')
+    ax[0,0].set_title('Error: '+ term0 )
 
-    con2 = ax[1,0].contourf(lon_lin,lat_lin,dzetadt)
 
-
+    # plot localtime derivative
+    term1 = r'$\frac{\delta \zeta}{\delta t}$'
+    con2 = ax[1,0].contourf(lon_lin,lat_lin,dzetadt, cmap='jet', \
+                            vmin=vmin, vmax=vmax)
+    plt.colorbar(con2, ax=ax[1,0], orientation='horizontal')
     ax[1,0].set_title('Local time derivative, ' + term1)
-    
-    con3 = ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet')
-    plt.colorbar(con3, ax=ax[1,1], orientation='horizontal')
 
+    
+    # plot relative advection
+    term2 = r'$ - \overrightarrow{V} \cdot \nabla \zeta$'
+    con3 = ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet', \
+                            vmin=vmin, vmax=vmax)
+    plt.colorbar(con3, ax=ax[1,1], orientation='horizontal')
     ax[1,1].set_title('Relative Advection, ' + term2)
     
-    con4 = ax[0,1].contourf(lon_lin,lat_lin,f_adv, levels=16, cmap='jet')
-
+    # plot planetary advection
+    term3 = r'$ - \overrightarrow{V} \cdot \nabla f$'
+    con4 = ax[0,1].contourf(lon_lin,lat_lin,f_adv, levels=16, cmap='jet',
+                            vmin=vmin, vmax=vmax)
     ax[0,1].set_title('Planetary Advection, ' + term3)
     plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
 
