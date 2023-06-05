@@ -474,10 +474,14 @@ def compute_trajectories(dataset, start_time, start_step,deltat, nsteps):
         print("Wrote trajectories to ", trajectory_file)
     return trajectory_list
 #
+# two-penel plot of trajectory on a map and timeline of vorticity
+#
 def plot_one_trajectory(traj, filename, start_time, stop_time):
     """
     input: traj - a trajectory
            filename - name of file to write plot to
+           start_tine - starting time for plot
+           stop_time - stopping time for plot
     """
     fig = plt.figure(figsize=(8, 10))
     ax = fig.add_subplot(211, projection=ccrs.PlateCarree())
@@ -791,95 +795,7 @@ def plot_all_fields(dataset, nsteps, deltat, showplot):
 #    print("Vorticities were added to trajectoriea")
 #    return
 
-def plot_vort_timeline(trajectories):
-    """
-        plot the vorticity as function of time for  each trajectory
-    """
 
-    max_points = 11 # limit on x axis - should match maximum number of points
-    for trajectory in trajectories:
-        if trajectory.length < 4:
-            continue  # skip any empty or trunjcated edge  trajectories
-        vort_list = []
-
-        for index, point in enumerate(trajectory.points):
-            if index == 0:
-                start_lat = point.lat
-                start_lon = point.lon
-                start_time = point.timestamp
-            stop_lat = point.lat
-            stop_lon = point.lon
-            stop_time = point.timestamp
-            vort_list.append(point.vort)
-
-        plt.plot(vort_list,marker="o")
-        plt.xlabel('Time')
-        plt.ylabel('Absolute Vorticity')
-        plt.ylim(0, 2.e-4)
-        plt.xlim(0,max_points)
-        #
-        # show start and stop lat and lon in title
-        #
-        title = "start:  {:.2f},{:.2f}, end: {:.2f},{:.2f}".\
-            format(start_lat, start_lon, stop_lat, stop_lon)
-        start_str = np.datetime_as_string(start_time, unit='s')
-        stop_str =  np.datetime_as_string(stop_time, unit='s')
-        title = title + "\n" + start_str + " to " + stop_str
-        plt.title(title)
-
-        # Display the plot
-        plt.show()
-        
-
-    return # nothing 
-
-# TODO: Analytics on changes in vorticity
-# Try an RMS percentage change in the vorticity over all complete trajectorie
-# Compare the vorticity at the start of a trajectory with its value at the
-# end.
-#
-#    vort0 = []
-#    vort1 = []
-#    for trajectory in trajectory_list:
-#        v0 = trajectory.points[0].vort
-#        v1 = trajectory.points[-1].vort
-#        if( math.isnan(v0)):
-#            continue
-#        if( math.isnan(v1)):
-#            continue
-#        if( v0 < 1.e-10):
-#            continue
-#        if( v1 < 1.e-10):
-#            continue
-#        vort0.append(v0)
-#        vort1.append(v1)
-#
-#    
-#    vort0 = np.array(vort0)
-#    vort1 = np.array(vort1)
-#    diff = (vort1 - vort0)**2
-#    mean_diff = np.sum(diff) / len(vort1)
-#    rms = np.sqrt(mean_diff)
-#    print("RMS change in trajectory vorticity is ", rms)
-#    rms0 = np.sqrt(np.sum(vort0* vort0)/len(vort0)        )
-#    print("RMS of initial vorticity is ", rms0)
-#    print("Relative change is ", rms/rms0*100, " percent")
-def plot_traj_timeline(trajectory):
-    fig, axs = plt.subplots(2, 1)  # 2 rows, 1 column
-
-    # Plot on the first subplot
-    #    axs[0].plot(x, y1)
-    axs[0].set_title('Plot 1')
-
-    # Plot on the second subplot
-#    axs[1].plot(x, y2)
-    axs[1].set_title('Plot 2')
-    
-    # Adjust spacing between subplots
-    plt.tight_layout()
-
-    # Display the subplots
-    plt.show()
 
 #
 # interpolate the height data from the dataset at 1 deg lat
@@ -897,6 +813,108 @@ def interp_z(ds, time, step, lats, lons):
                 
                                         
     return h
+# make a 4-penal plot of vorticity equation terms and sums
+def plot_vort_terms(dataset, deltat , showplot):
+
+    time_index = 10
+    zeta = dataset['abs_vorticity'][time_index].values
+    u = dataset['wind_u'][time_index].values
+    v = dataset['wind_v'][time_index].values
+    x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
+    y = EARTH_RADIUS * lat_rad
+    dzetadx = np.gradient(zeta, axis=1)/np.gradient(x, axis=1)
+    dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
+
+    vadv = -(u * dzetadx + v*dzetady)
+
+    if time_index == 0 :
+        zeta_t1 = dataset['abs_vorticity'][1].values
+        zeta_t0  = dataset['abs_vorticity'][1].values
+        dzetadt = (zeta_t1 - zeta_t0) / deltat
+    elif time_index >= maxsteps -1 :
+        zeta_t1 = dataset['abs_vorticity'][maxsteps -1].values
+        zeta_t0  = dataset['abs_vorticity'][maxsteps -2].values
+        dzetadt = (zeta_t1 - zeta_t0) / deltat
+    else:
+        zeta_t1 = dataset['abs_vorticity'][time_index + 1].values
+        zeta_t0  = dataset['abs_vorticity'][time_index -1].values
+        dzetadt = (zeta_t1 - zeta_t0) / (2 * deltat)
+        
+    error = dzetadt - vadv
+    
+    fig = plt.figure(figsize=(12,8))
+    
+    # Draw the continents and coastlines in white                                                                            
+    m.drawcoastlines(linewidth=0.5, color='black')
+    m.drawcountries(linewidth=0.5, color='black')
+
+    x, y = m(lon, lat)
+
+    m.contourf(x,y,error, cmap='jet',levels=20)
+               
+    # Add a colorbar and title                                                                                      
+    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
+    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
+    label='Vorticity Imbalance Errorn'
+    units = r'$s^{-2}$'
+    cbar = plt.colorbar()
+    cbar.set_label(f'{label} ({units})')
+#    plt.title('Vorticity Error ' + time_str)
+#    plt.savefig("vort_err"+time_str+".png")
+    if showplot:
+        plt.show()
+    plt.close()
+
+    fig = plt.figure(figsize=(8, 10))
+    ax1 = fig.add_subplot(221, projection=ccrs.PlateCarree())
+    ax2 = fig.add_subplot(222, projection=ccrs.PlateCarree())
+    ax3 = fig.add_subplot(223, projection=ccrs.PlateCarree())
+    ax1.set_extent([min_lon, max_lon, min_lat, max_lat])
+    ax2.set_extent([min_lon, max_lon, min_lat, max_lat])
+    ax3.set_extent([min_lon, max_lon, min_lat, max_lat])
+    # Draw the continents and coastlines in white
+    ax1.coastlines(linewidth=0.5, color='black')
+    ax1.add_feature(cartopy.feature.BORDERS, linewidth=0.5, edgecolor='black')
+    ax2.coastlines(linewidth=0.5, color='black')
+    ax2.add_feature(cartopy.feature.BORDERS, linewidth=0.5, edgecolor='black')
+    ax3.coastlines(linewidth=0.5, color='black')
+    ax3.add_feature(cartopy.feature.BORDERS, linewidth=0.5, edgecolor='black')
+
+    # Draw parallels and meridians
+    parallels = range(min_lat, max_lat, 10)
+    meridians = range(min_lon, max_lon, 10)
+    ax1.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
+                 linestyle='--')
+    ax2.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
+                 linestyle='--')
+    ax3.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
+                 linestyle='--')
+
+    ax1.set_xticks(meridians, crs=ccrs.PlateCarree())
+    ax1.set_yticks(parallels, crs=ccrs.PlateCarree())
+    ax1.xaxis.set_ticklabels([])
+    ax1.yaxis.set_ticklabels([])
+    
+    ax2.set_xticks(meridians, crs=ccrs.PlateCarree())
+    ax2.set_yticks(parallels, crs=ccrs.PlateCarree())
+    ax2.xaxis.set_ticklabels([])
+    ax2.yaxis.set_ticklabels([])
+
+    ax3.set_xticks(meridians, crs=ccrs.PlateCarree())
+    ax3.set_yticks(parallels, crs=ccrs.PlateCarree())
+    ax3.xaxis.set_ticklabels([])
+    ax3.yaxis.set_ticklabels([])
+
+    ax1.contourf(x,y,error,levels=16, cmap='jet')
+    ax2.contourf(x,y,dzetadt, levels=16, cmap='jet')
+    ax3.contourf(x,y,vadv, levels=16, cmap='jet')
+    plt.tight_layout() # this is needed to prevent overlapping figures.
+
+#    plt.savefig(filename)
+#    plt.close()
+    plt.show()
+
+
 
 # main program:
 # Read winds and vorticity from NetCDF file if it exists. Else create it.
@@ -1000,8 +1018,10 @@ show_plots = False
 dt_hours = 1 # time step in hoursdeltat = dt_hours * 3600
 # time step in second
 deltat = dt_hours * 3600
-plot_all_fields(data, maxsteps, deltat, show_plots)
-
+#plot_all_fields(data, maxsteps, deltat, show_plots)
+#
+# plot all vorticity terms
+plot_vort_terms(data, deltat, True)
 # Plotting the trajectories
 #
 
