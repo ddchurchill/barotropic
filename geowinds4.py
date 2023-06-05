@@ -404,12 +404,12 @@ def plot_winds_v2(dataset, time_index, time_str, showplot):
 #    dt_str = np.datetime_as_string(time_stamp, unit='s')
 #
 
-    print("plot winds v2: time stamp ", time_str)
+#    print("plot winds v2: time stamp ", time_str)
     steps = dataset['step'].values
     
 #    print("plot winds v23: time = ", time_stamp)
 #    time_str = np.datetime_as_string(time_stamp, unit='s')
-    print("plot winds v2: time string:", time_str)
+#    print("plot winds v2: time string:", time_str)
         ## Create a new figure
     fig = plt.figure(figsize=(12, 8))
     
@@ -517,7 +517,7 @@ def plot_one_trajectory(traj, filename, start_time, stop_time):
 
     # plot a timeline of vorticity values     
 
-    ax2.set_ylim(0, 2.e-4)
+    ax2.set_ylim(0, 5.e-4)
     ax2.set_xlabel('Date Time')
     ax2.set_ylabel('Abs. Vorticity')
     ax2.set_xlim(start_time, stop_time)
@@ -655,8 +655,8 @@ def plot_vort_v2(dataset, time_index, time_str, showplot):
 
     x, y = m(lon, lat)
 
-    m.contourf(x,y,vort, cmap='jet',levels=25,\
-               vmin=0., vmax=5.e-4, extend='neither')
+    m.contourf(x,y,vort, cmap='rainbow',levels=16,\
+               vmin=0., vmax=3.e-4, extend='neither')
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
@@ -705,7 +705,7 @@ def plot_rel_vort_v2(dataset, time_index, time_str, showplot):
         plt.show()
     plt.close()
     
-def plot_vort_advection(dataset, time_index, time_str, showplot):
+def plot_vort_advection(dataset, time_index, time_str, deltat, showplot):
 
         
     zeta = dataset['abs_vorticity'][time_index].values
@@ -717,48 +717,64 @@ def plot_vort_advection(dataset, time_index, time_str, showplot):
     dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
 
     vadv = -(u * dzetadx + v*dzetady)
-    print("max value of vort advection is ", np.max(np.abs(vadv)))
+
+    if time_index == 0 :
+        zeta_t1 = dataset['abs_vorticity'][1].values
+        zeta_t0  = dataset['abs_vorticity'][1].values
+        dzetadt = (zeta_t1 - zeta_t0) / deltat
+    elif time_index >= maxsteps -1 :
+        zeta_t1 = dataset['abs_vorticity'][maxsteps -1].values
+        zeta_t0  = dataset['abs_vorticity'][maxsteps -2].values
+        dzetadt = (zeta_t1 - zeta_t0) / deltat
+    else:
+        zeta_t1 = dataset['abs_vorticity'][time_index + 1].values
+        zeta_t0  = dataset['abs_vorticity'][time_index -1].values
+        dzetadt = (zeta_t1 - zeta_t0) / (2 * deltat)
+        
+    error = dzetadt - vadv
+    
     fig = plt.figure(figsize=(12,8))
+    
     # Draw the continents and coastlines in white                                                                            
     m.drawcoastlines(linewidth=0.5, color='black')
     m.drawcountries(linewidth=0.5, color='black')
 
     x, y = m(lon, lat)
 
-    m.contourf(x,y,vadv, cmap='jet',levels=20, \
-               vmin=-2.e-8, vmax=2.e-8, extend='neither')
+    m.contourf(x,y,error, cmap='jet',levels=20)
+               
     # Add a colorbar and title                                                                                      
     m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
-    label='Vorticity Advection'
+    label='Vorticity Imbalance Errorn'
     units = r'$s^{-2}$'
     cbar = plt.colorbar()
     cbar.set_label(f'{label} ({units})')
-    plt.title('Vorticity Advection ' + time_str)
-    plt.savefig("vort_adv"+time_str+".png")
+    plt.title('Vorticity Error ' + time_str)
+    plt.savefig("vort_err"+time_str+".png")
     if showplot:
         plt.show()
     plt.close()
 
-def plot_all_fields(dataset, nsteps, showplot):
+def plot_all_fields(dataset, nsteps, deltat, showplot):
     # plot the fields for all time periods
 # Create a new map projection
     steps = dataset['step'].values
     for time_index in range(0, nsteps):
 
         steps = dataset['step'].values
-        time_step = steps[time_index]
+        time_step = steps[time_index] 
         print("time index is ", time_index)
         start_time = dataset['time'].values
         time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
         time_str = np.datetime_as_string(time_stamp, unit='s')
-        plot_vort_advection(data, time_index, time_str, showplot)
-        plot_winds_v2(data,time_index, time_str, showplot) 
-        plot_speed_v2(data,time_index, time_str, showplot)
+        plot_vort_advection(data, time_index, time_str, deltat, showplot)
+#        plot_winds_v2(data,time_index, time_str, showplot) 
+#        plot_speed_v2(data,time_index, time_str, showplot)
         # plot the absolute  voriticity
-        plot_vort_v2(data,time_index, time_str, showplot)
+#        plot_vort_v2(data,time_index, time_str, showplot)
         # plot relative vorticity
-        plot_rel_vort_v2(data,time_index, time_str, showplot)
+#        plot_rel_vort_v2(data,time_index, time_str, showplot)
 
 # done making and saving plots.
 #
@@ -980,12 +996,15 @@ print("max abs rel vorticity:", np.max(np.abs(data['rel_vorticity'].values)))
 m = Basemap(projection='cyl', llcrnrlat=min_lat, \
                 urcrnrlat=max_lat, llcrnrlon=min_lon, urcrnrlon=max_lon)
 
-show_plots = True
-plot_all_fields(data, maxsteps, show_plots)
+show_plots = False
+dt_hours = 1 # time step in hoursdeltat = dt_hours * 3600
+# time step in second
+deltat = dt_hours * 3600
+plot_all_fields(data, maxsteps, deltat, show_plots)
 
 # Plotting the trajectories
 #
-print("All times completed")
+
 
 trajeotory_file = "trajectories.nc"
 
@@ -993,10 +1012,10 @@ start_time = data['time']
 
 #
 
-dt_hours = 1 # time step in hours
+
 nsteps = 48 # number of step to integrate over
 
-deltat = dt_hours * 3600 # time step in seconds
+
 print("Computing trajectories")
 #
 # set the first time step we want the trajecotreis to use after the
@@ -1014,12 +1033,12 @@ start_time_str = np.datetime_as_string(start_time, unit='s')
 stop_time_str, stop_time = get_timestamp(start_time, start_step + nsteps)
 print(start_time_str, stop_time_str)
 
-print("Plotting trajectories")
-plot_trajectories(trajectories, start_time, stop_time)
-
-#
-plot_trajectories = True
+plot_trajectories = False
 if plot_trajectories:
+    print("Plotting trajectories")
+    plot_trajectories(trajectories, start_time, stop_time)
+
+    # print each trajectory with a vorticity timeline
     for i, t in enumerate(trajectories):
         filename = "tstep_" + str(dt_hours) + "hour" + str(i)
         plot_one_trajectory(t,filename, start_time, stop_time)
