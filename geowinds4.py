@@ -817,16 +817,19 @@ def interp_z(ds, time, step, lats, lons):
 def plot_vort_terms(dataset, deltat , showplot):
 
     time_index = 10
-    zeta = dataset['abs_vorticity'][time_index].values
+    zeta = dataset['rel_vorticity'][time_index].values
     u = dataset['wind_u'][time_index].values
     v = dataset['wind_v'][time_index].values
     x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
     y = EARTH_RADIUS * lat_rad
-    X, Y = np.meshgrid(x, y)
 
     dzetadx = np.gradient(zeta, axis=1)/np.gradient(x, axis=1)
     dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
 
+    dfdx = np.gradient(f,axis=1)/np.gradient(x, axis=1)
+    dfdy = np.gradient(f, axis=0)/np.gradient(y, axis=0)
+
+    f_adv = -(u * dfdx + v * dfdy)
     vadv = -(u * dzetadx + v*dzetady)
 
     if time_index == 0 :
@@ -842,10 +845,10 @@ def plot_vort_terms(dataset, deltat , showplot):
         zeta_t0  = dataset['abs_vorticity'][time_index -1].values
         dzetadt = (zeta_t1 - zeta_t0) / (2 * deltat)
         
-    error = dzetadt - vadv
+    error = dzetadt - vadv - f_adv
     
     fig, ax = plt.subplots(2,2,\
-                           figsize=(10, 8), \
+                           figsize=(20, 10), \
             subplot_kw={'projection': ccrs.PlateCarree()})
 
     # Draw parallels and meridians
@@ -856,25 +859,50 @@ def plot_vort_terms(dataset, deltat , showplot):
         axis.set_extent([min_lon, max_lon, min_lat, max_lat])
     
 
-    ax[0,0].contourf(lon_lin, lat_lin,error,levels=16, cmap='jet', transform=ccrs.PlateCarree())
-    ax[1,0].contourf(lon_lin,lat_lin,dzetadt) # levels=16, cmap='jet')
-    ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet')
-#    ax[1,0].contourf(lon_lin, lat_lin,vadv, levels=16, cmap='jet')
 
+    con1 = ax[0,0].contourf(lon_lin, lat_lin,error,\
+                            levels=16, cmap='jet', \
+                            transform=ccrs.PlateCarree())
+
+    plt.colorbar(con1, ax=ax[1,0], orientation='horizontal')
+    
+    term1 = r'$\frac{\delta \zeta}{\delta t}$'
+    
     ax[0,0].set_title('Error')
-    ax[1,0].set_title('D(zeta +f)/Dt')
-    ax[1,1].set_title('Vorticity Advection')
+    plt.colorbar(con1, ax=ax[0,0], orientation='horizontal')
+
+    con2 = ax[1,0].contourf(lon_lin,lat_lin,dzetadt)
+
+
+    ax[1,0].set_title('Local time derivative, ' + term1)
+    
+    con3 = ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet')
+    plt.colorbar(con3, ax=ax[1,1], orientation='horizontal')
+    term2 = r'$- \overrightarrow{V} \cdot \nabla \zeta$'
+    ax[1,1].set_title('Relative Advection, ' + term2)
+    
+    con4 = ax[0,1].contourf(lon_lin,lat_lin,f_adv, levels=16, cmap='jet')
+    term3 = r'$- \overrightarrow{V} \cdot \nabla f$'
+    ax[0,1].set_title('Planetary Advection, ' + term3)
+    plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
+
+
+
+
+
+
+
     # Draw the continents and coastlines in white
     for axis in ax.flat:
         axis.coastlines(linewidth=0.5, color='black')
-#        axis.add_feature(cartopy.feature.BORDERS, linewidth=0.5, \
-#                         edgecolor='black')
-#        axis.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
-#                 linestyle='--')
-#        axis.set_xticks(meridians, crs=ccrs.PlateCarree())
-#        axis.set_yticks(parallels, crs=ccrs.PlateCarree())
-#        axis.xaxis.set_ticklabels([])
-#        axis.yaxis.set_ticklabels([])
+        axis.add_feature(cartopy.feature.BORDERS, linewidth=0.5, \
+                         edgecolor='black')
+        axis.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
+                 linestyle='--')
+        axis.set_xticks(meridians, crs=ccrs.PlateCarree())
+        axis.set_yticks(parallels, crs=ccrs.PlateCarree())
+        axis.xaxis.set_ticklabels([])
+        axis.yaxis.set_ticklabels([])
 
 #    plt.tight_layout() # this is needed to prevent overlapping figures.
 
