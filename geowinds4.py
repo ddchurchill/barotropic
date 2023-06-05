@@ -866,9 +866,12 @@ def plot_vort_terms(dataset, deltat , showplot):
 
     plt.colorbar(con1, ax=ax[1,0], orientation='horizontal')
     
+    term0 = r'$\epsilon = \frac{\delta \zeta}{\delta  t} + \overrightarrow{V} \cdot \nabla (\zeta + f)$'
     term1 = r'$\frac{\delta \zeta}{\delta t}$'
+    term2 = r'$ - \overrightarrow{V} \cdot \nabla \zeta$'
+    term3 = r'$ - \overrightarrow{V} \cdot \nabla f$'
     
-    ax[0,0].set_title('Error')
+    ax[0,0].set_title('Error: '+ term0 )
     plt.colorbar(con1, ax=ax[0,0], orientation='horizontal')
 
     con2 = ax[1,0].contourf(lon_lin,lat_lin,dzetadt)
@@ -878,19 +881,13 @@ def plot_vort_terms(dataset, deltat , showplot):
     
     con3 = ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet')
     plt.colorbar(con3, ax=ax[1,1], orientation='horizontal')
-    term2 = r'$- \overrightarrow{V} \cdot \nabla \zeta$'
+
     ax[1,1].set_title('Relative Advection, ' + term2)
     
     con4 = ax[0,1].contourf(lon_lin,lat_lin,f_adv, levels=16, cmap='jet')
-    term3 = r'$- \overrightarrow{V} \cdot \nabla f$'
+
     ax[0,1].set_title('Planetary Advection, ' + term3)
     plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
-
-
-
-
-
-
 
     # Draw the continents and coastlines in white
     for axis in ax.flat:
