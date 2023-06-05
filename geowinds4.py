@@ -822,6 +822,8 @@ def plot_vort_terms(dataset, deltat , showplot):
     v = dataset['wind_v'][time_index].values
     x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
     y = EARTH_RADIUS * lat_rad
+    X, Y = np.meshgrid(x, y)
+
     dzetadx = np.gradient(zeta, axis=1)/np.gradient(x, axis=1)
     dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
 
@@ -842,73 +844,39 @@ def plot_vort_terms(dataset, deltat , showplot):
         
     error = dzetadt - vadv
     
-    fig = plt.figure(figsize=(12,8))
-    
-    # Draw the continents and coastlines in white                                                                            
-    m.drawcoastlines(linewidth=0.5, color='black')
-    m.drawcountries(linewidth=0.5, color='black')
-
-    x, y = m(lon, lat)
-
-    m.contourf(x,y,error, cmap='jet',levels=20)
-               
-    # Add a colorbar and title                                                                                      
-    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
-    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
-    label='Vorticity Imbalance Errorn'
-    units = r'$s^{-2}$'
-    cbar = plt.colorbar()
-    cbar.set_label(f'{label} ({units})')
-#    plt.title('Vorticity Error ' + time_str)
-#    plt.savefig("vort_err"+time_str+".png")
-    if showplot:
-        plt.show()
-    plt.close()
-
-    fig = plt.figure(figsize=(8, 10))
-    ax1 = fig.add_subplot(221, projection=ccrs.PlateCarree())
-    ax2 = fig.add_subplot(222, projection=ccrs.PlateCarree())
-    ax3 = fig.add_subplot(223, projection=ccrs.PlateCarree())
-    ax1.set_extent([min_lon, max_lon, min_lat, max_lat])
-    ax2.set_extent([min_lon, max_lon, min_lat, max_lat])
-    ax3.set_extent([min_lon, max_lon, min_lat, max_lat])
-    # Draw the continents and coastlines in white
-    ax1.coastlines(linewidth=0.5, color='black')
-    ax1.add_feature(cartopy.feature.BORDERS, linewidth=0.5, edgecolor='black')
-    ax2.coastlines(linewidth=0.5, color='black')
-    ax2.add_feature(cartopy.feature.BORDERS, linewidth=0.5, edgecolor='black')
-    ax3.coastlines(linewidth=0.5, color='black')
-    ax3.add_feature(cartopy.feature.BORDERS, linewidth=0.5, edgecolor='black')
+    fig, ax = plt.subplots(2,2,\
+                           figsize=(10, 8), \
+            subplot_kw={'projection': ccrs.PlateCarree()})
 
     # Draw parallels and meridians
     parallels = range(min_lat, max_lat, 10)
     meridians = range(min_lon, max_lon, 10)
-    ax1.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
-                 linestyle='--')
-    ax2.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
-                 linestyle='--')
-    ax3.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
-                 linestyle='--')
 
-    ax1.set_xticks(meridians, crs=ccrs.PlateCarree())
-    ax1.set_yticks(parallels, crs=ccrs.PlateCarree())
-    ax1.xaxis.set_ticklabels([])
-    ax1.yaxis.set_ticklabels([])
+    for axis in ax.flat:
+        axis.set_extent([min_lon, max_lon, min_lat, max_lat])
     
-    ax2.set_xticks(meridians, crs=ccrs.PlateCarree())
-    ax2.set_yticks(parallels, crs=ccrs.PlateCarree())
-    ax2.xaxis.set_ticklabels([])
-    ax2.yaxis.set_ticklabels([])
 
-    ax3.set_xticks(meridians, crs=ccrs.PlateCarree())
-    ax3.set_yticks(parallels, crs=ccrs.PlateCarree())
-    ax3.xaxis.set_ticklabels([])
-    ax3.yaxis.set_ticklabels([])
+    ax[0,0].contourf(lon_lin, lat_lin,error,levels=16, cmap='jet', transform=ccrs.PlateCarree())
+    ax[1,0].contourf(lon_lin,lat_lin,dzetadt) # levels=16, cmap='jet')
+    ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet')
+#    ax[1,0].contourf(lon_lin, lat_lin,vadv, levels=16, cmap='jet')
 
-    ax1.contourf(x,y,error,levels=16, cmap='jet')
-    ax2.contourf(x,y,dzetadt, levels=16, cmap='jet')
-    ax3.contourf(x,y,vadv, levels=16, cmap='jet')
-    plt.tight_layout() # this is needed to prevent overlapping figures.
+    ax[0,0].set_title('Error')
+    ax[1,0].set_title('D(zeta +f)/Dt')
+    ax[1,1].set_title('Vorticity Advection')
+    # Draw the continents and coastlines in white
+    for axis in ax.flat:
+        axis.coastlines(linewidth=0.5, color='black')
+#        axis.add_feature(cartopy.feature.BORDERS, linewidth=0.5, \
+#                         edgecolor='black')
+#        axis.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
+#                 linestyle='--')
+#        axis.set_xticks(meridians, crs=ccrs.PlateCarree())
+#        axis.set_yticks(parallels, crs=ccrs.PlateCarree())
+#        axis.xaxis.set_ticklabels([])
+#        axis.yaxis.set_ticklabels([])
+
+#    plt.tight_layout() # this is needed to prevent overlapping figures.
 
 #    plt.savefig(filename)
 #    plt.close()
@@ -1036,25 +1004,25 @@ start_time = data['time']
 nsteps = 48 # number of step to integrate over
 
 
-print("Computing trajectories")
-#
-# set the first time step we want the trajecotreis to use after the
-# initialization time. Each step is 1 hour
-start_step = 0
-trajectories = compute_trajectories(data, start_time, start_step,\
-                                    deltat, nsteps)
 # plot trajectoriea at given time periods
-
-print("Trajectory times:")
-#
-# trajectory end time is start time plus nsteps hours
-start_time = trajectories[0].start_time
-start_time_str = np.datetime_as_string(start_time, unit='s')
-stop_time_str, stop_time = get_timestamp(start_time, start_step + nsteps)
-print(start_time_str, stop_time_str)
-
 plot_trajectories = False
 if plot_trajectories:
+    print("Computing trajectories")
+    #
+    # set the first time step we want the trajecotreis to use after the
+    # initialization time. Each step is 1 hour
+    start_step = 0
+    trajectories = compute_trajectories(data, start_time, start_step,\
+                                        deltat, nsteps)
+
+    print("Trajectory times:")
+    #
+    # trajectory end time is start time plus nsteps hours
+    start_time = trajectories[0].start_time
+    start_time_str = np.datetime_as_string(start_time, unit='s')
+    stop_time_str, stop_time = get_timestamp(start_time, start_step + nsteps)
+    print(start_time_str, stop_time_str)
+
     print("Plotting trajectories")
     plot_trajectories(trajectories, start_time, stop_time)
 
