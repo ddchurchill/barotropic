@@ -263,25 +263,7 @@ def baro_fcst(forecast_init_time, step):
         "lon": slice(180+min_lon, 180+max_lon)
     })['z500'].values
     
-#    print("baro min height:", np.min(baro))
-#    print("baro max height:", np.max(baro))      
-
-    # check the lat and lon range
-#    lats = fc_ds_baro.sel({
-#        "time": forecast_init_time,
-#        "step": step,
-#        "lat": slice(max_lat, min_lat),
-#        "lon": slice(180+min_lon, 180+max_lon)
-#    })['lat'].values
-#    lons = fc_ds_baro.sel({
-#        "time": forecast_init_time,
-#        "step": step,
-#        "lat": slice(max_lat, min_lat),
-#        "lon": slice(180+min_lon, 180+max_lon)
-#    })['lon'].values
-#    print("Baro_fcst lats:", np.flip(lats))
-#    print("Baro_fcst lons:", np.flip(lons))
-    #flip the data around the latitude axis, as it is stored in the
+    #flip the data upside down, as it is stored in the
     # file upside down compared to my usage.
     baro = np.flip(baro,axis=0)
 #
@@ -340,6 +322,11 @@ def prescribe_winds2():
     dvdx, dvdy = centered_diff(vg, x, y)
     dudx, dudy = centered_diff(ug, x, y)
     zeta = dvdx - dudy
+    #
+    # test new code
+    #
+    d2zdx2, d2zdy2 = second(geopot, x, y)
+    zeta = (d2zdx2 + d2zdy2)/f
     return ug, vg, zeta, speed
 
 def prescribe_winds(): 
@@ -462,6 +449,8 @@ def compute_trajectories(dataset, start_time, start_step,deltat, nsteps):
 
         for lat0 in lat_range:
             for lon0 in lon_range:
+                print("Trajectory ", index)
+                index += 1
                 # compute the trajectory from the model winds
                 trajectory = \
                     huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat)
@@ -773,12 +762,12 @@ def plot_all_fields(dataset, nsteps, deltat, showplot):
         time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
         time_str = np.datetime_as_string(time_stamp, unit='s')
         plot_vort_advection(data, time_index, time_str, deltat, showplot)
-#        plot_winds_v2(data,time_index, time_str, showplot) 
-#        plot_speed_v2(data,time_index, time_str, showplot)
+        plot_winds_v2(data,time_index, time_str, showplot) 
+        plot_speed_v2(data,time_index, time_str, showplot)
         # plot the absolute  voriticity
-#        plot_vort_v2(data,time_index, time_str, showplot)
+        plot_vort_v2(data,time_index, time_str, showplot)
         # plot relative vorticity
-#        plot_rel_vort_v2(data,time_index, time_str, showplot)
+        plot_rel_vort_v2(data,time_index, time_str, showplot)
 
 # done making and saving plots.
 #
@@ -861,7 +850,7 @@ def plot_vort_terms(dataset, deltat , showplot):
 
 
     con1 = ax[0,0].contourf(lon_lin, lat_lin,error,\
-                            vmin=-2.e-8, vmax=2.e-8, \
+#                            vmin=-2.e-8, vmax=2.e-8, \
                             levels=16, cmap='jet', \
                             transform=ccrs.PlateCarree())
 
@@ -870,31 +859,31 @@ def plot_vort_terms(dataset, deltat , showplot):
     # plot error - difference from zero
     vmin = -1.e-8
     vmax= 1.e-8
-    con1 = ax[0,0].contourf(lon_lin, lat_lin, error, cmap='jet', \
-                            vmin=vmin, vmax=vmax)
+    con1 = ax[0,0].contourf(lon_lin, lat_lin, error, cmap='jet')
+#                            vmin=vmin, vmax=vmax)
     plt.colorbar(con1, ax=ax[0,0], orientation='horizontal')
     ax[0,0].set_title('Error: '+ term0 )
 
 
     # plot localtime derivative
     term1 = r'$\frac{\delta \zeta}{\delta t}$'
-    con2 = ax[1,0].contourf(lon_lin,lat_lin,dzetadt, cmap='jet', \
-                            vmin=vmin, vmax=vmax)
+    con2 = ax[1,0].contourf(lon_lin,lat_lin,dzetadt, cmap='jet')
+#                            vmin=vmin, vmax=vmax)
     plt.colorbar(con2, ax=ax[1,0], orientation='horizontal')
     ax[1,0].set_title('Local time derivative, ' + term1)
 
     
     # plot relative advection
     term2 = r'$ - \overrightarrow{V} \cdot \nabla \zeta$'
-    con3 = ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet', \
-                            vmin=vmin, vmax=vmax)
+    con3 = ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet')
+#                            vmin=vmin, vmax=vmax)
     plt.colorbar(con3, ax=ax[1,1], orientation='horizontal')
     ax[1,1].set_title('Relative Advection, ' + term2)
     
     # plot planetary advection
     term3 = r'$ - \overrightarrow{V} \cdot \nabla f$'
-    con4 = ax[0,1].contourf(lon_lin,lat_lin,f_adv, levels=16, cmap='jet',
-                            vmin=vmin, vmax=vmax)
+    con4 = ax[0,1].contourf(lon_lin,lat_lin,f_adv, levels=16, cmap='jet')
+ #                           vmin=vmin, vmax=vmax)
     ax[0,1].set_title('Planetary Advection, ' + term3)
     plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
 
@@ -989,18 +978,19 @@ else:
 #        geopot = north_wind_v2(geopot, lat_lin, lon_lin)
         # geopot = ridge_and_trough()
 # verion 3 uses mu with gradient calls
-#        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
+        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
         #        version 2 uses my centereed differences≈
-        winds_u, winds_v, zeta3, speed3 = prescribe_winds2()
+#        winds_u, winds_v, zeta3, speed3 = prescribe_winds2()
         #
         zeta = zeta3
         speed = speed3
-        data['z500'][step] = geopot 
-        data['wind_u'][step] = winds_u
-        data['wind_v'][step] = winds_v
-        data['rel_vorticity'][step] = zeta
-        data['abs_vorticity'][step] = zeta + f
-        data['speed'][step] = speed    
+        abs_vorticity = zeta + f
+        data['z500'][step] = geopot.copy()
+        data['wind_u'][step] = winds_u.copy()
+        data['wind_v'][step] = winds_v.copy()
+        data['rel_vorticity'][step] = zeta.copy()
+        data['abs_vorticity'][step] = abs_vorticity.copy()
+        data['speed'][step] = speed.copy()
 
     data.to_netcdf(dataset_file)
     print("Data written to ", dataset_file)
@@ -1020,7 +1010,7 @@ show_plots = False
 dt_hours = 1 # time step in hoursdeltat = dt_hours * 3600
 # time step in second
 deltat = dt_hours * 3600
-#plot_all_fields(data, maxsteps, deltat, show_plots)
+plot_all_fields(data, maxsteps, deltat, show_plots)
 #
 # plot all vorticity terms
 plot_vort_terms(data, deltat, True)
@@ -1039,8 +1029,8 @@ nsteps = 48 # number of step to integrate over
 
 
 # plot trajectoriea at given time periods
-plot_trajectories = False
-if plot_trajectories:
+do_plot_trajectories = True
+if do_plot_trajectories:
     print("Computing trajectories")
     #
     # set the first time step we want the trajecotreis to use after the
