@@ -261,7 +261,7 @@ def baro_fcst(forecast_init_time, step):
         "step": step,
         "lat": slice(max_lat, min_lat),
         "lon": slice(180+min_lon, 180+max_lon)
-    })['z500'].values
+    })['z500'].values.copy()
     
     #flip the data upside down, as it is stored in the
     # file upside down compared to my usage.
@@ -323,9 +323,10 @@ def prescribe_winds2():
     dudx, dudy = centered_diff(ug, x, y)
     zeta = dvdx - dudy
     #
-    # test new code
+    # test new code - no variation in f
     #
-    d2zdx2, d2zdy2 = second(geopot, x, y)
+    d2zdx2, unused = centered_diff(dzdx, x, y)
+    unused, d2zdy2 = centered_diff(dzdy, x, y)
     zeta = (d2zdx2 + d2zdy2)/f
     return ug, vg, zeta, speed
 
@@ -407,12 +408,12 @@ def plot_winds_v2(dataset, time_index, time_str, showplot):
 
     # Draw the geopotential field
     x, y = m(lon, lat)
-    heights = dataset['z500'][time_index].values
+    heights = dataset['z500'][time_index].values.copy()
     m.contourf(x, y, heights, cmap='jet', levels=30, vmin=5000., vmax=6000.)
     
     # Draw the geostrophic wind vectors
-    ug = dataset['wind_u'][time_index].values
-    vg = dataset['wind_v'][time_index].values
+    ug = dataset['wind_u'][time_index].values.copy()
+    vg = dataset['wind_v'][time_index].values.copy()
     
     
     m.quiver(x[::5, ::5], y[::5, ::5], ug[::5, ::5], vg[::5, ::5], \
@@ -617,7 +618,7 @@ def plot_speed_v2(dataset, time_index, time_str, showplot):
     
     x, y = m(lon, lat)
 
-    speed = dataset['speed'][time_index].values
+    speed = dataset['speed'][time_index].values.copy()
     m.contourf(x,y,speed, cmap='jet',levels=20,\
                vmin=0, vmax=80, extend='neither')
     m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])
@@ -639,7 +640,7 @@ def plot_speed_v2(dataset, time_index, time_str, showplot):
     
 def plot_vort_v2(dataset, time_index, time_str, showplot):
 
-    vort = dataset['abs_vorticity'][time_index].values
+    vort = dataset['abs_vorticity'][time_index].values.copy()
       
     fig3 = plt.figure(figsize=(12,8))
     # Draw the continents and coastlines in white                                                                            
@@ -669,7 +670,7 @@ def plot_rel_vort_v2(dataset, time_index, time_str, showplot):
         
 #    time_stamp = dataset['time'][time_index].values
 #    time_str = np.datetime_as_string(time_stamp, unit='s')
-    vort = dataset['rel_vorticity'][time_index].values
+    vort = dataset['rel_vorticity'][time_index].values.copy()
 
     fig3a = plt.figure(figsize=(12,8))
     # Draw the continents and coastlines in white                                                                            
@@ -701,9 +702,9 @@ def plot_rel_vort_v2(dataset, time_index, time_str, showplot):
 def plot_vort_advection(dataset, time_index, time_str, deltat, showplot):
 
         
-    zeta = dataset['abs_vorticity'][time_index].values
-    u = dataset['wind_u'][time_index].values
-    v = dataset['wind_v'][time_index].values
+    zeta = dataset['abs_vorticity'][time_index].values.copy()
+    u = dataset['wind_u'][time_index].values.copy()
+    v = dataset['wind_v'][time_index].values.copy()
     x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
     y = EARTH_RADIUS * lat_rad
     dzetadx = np.gradient(zeta, axis=1)/np.gradient(x, axis=1)
@@ -712,16 +713,16 @@ def plot_vort_advection(dataset, time_index, time_str, deltat, showplot):
     vadv = -(u * dzetadx + v*dzetady)
 
     if time_index == 0 :
-        zeta_t1 = dataset['abs_vorticity'][1].values
-        zeta_t0  = dataset['abs_vorticity'][1].values
+        zeta_t1 = dataset['abs_vorticity'][1].values.copy()
+        zeta_t0  = dataset['abs_vorticity'][1].values.copy()
         dzetadt = (zeta_t1 - zeta_t0) / deltat
     elif time_index >= maxsteps -1 :
-        zeta_t1 = dataset['abs_vorticity'][maxsteps -1].values
-        zeta_t0  = dataset['abs_vorticity'][maxsteps -2].values
+        zeta_t1 = dataset['abs_vorticity'][maxsteps -1].values.copy()
+        zeta_t0  = dataset['abs_vorticity'][maxsteps -2].values.copy()
         dzetadt = (zeta_t1 - zeta_t0) / deltat
     else:
-        zeta_t1 = dataset['abs_vorticity'][time_index + 1].values
-        zeta_t0  = dataset['abs_vorticity'][time_index -1].values
+        zeta_t1 = dataset['abs_vorticity'][time_index + 1].values.copy()
+        zeta_t0  = dataset['abs_vorticity'][time_index -1].values.copy()
         dzetadt = (zeta_t1 - zeta_t0) / (2 * deltat)
         
     error = dzetadt - vadv
@@ -806,7 +807,7 @@ def interp_z(ds, time, step, lats, lons):
 def plot_vort_terms(dataset, deltat , showplot):
 
     time_index = 10
-    zeta = dataset['rel_vorticity'][time_index].values
+    zeta = dataset['rel_vorticity'][time_index].values.copy()
     u = dataset['wind_u'][time_index].values
     v = dataset['wind_v'][time_index].values
     x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
@@ -822,16 +823,16 @@ def plot_vort_terms(dataset, deltat , showplot):
     vadv = -(u * dzetadx + v*dzetady)
 
     if time_index == 0 :
-        zeta_t1 = dataset['abs_vorticity'][1].values
-        zeta_t0  = dataset['abs_vorticity'][1].values
+        zeta_t1 = dataset['abs_vorticity'][1].values.copy()
+        zeta_t0  = dataset['abs_vorticity'][1].values.copy()
         dzetadt = (zeta_t1 - zeta_t0) / deltat
     elif time_index >= maxsteps -1 :
-        zeta_t1 = dataset['abs_vorticity'][maxsteps -1].values
-        zeta_t0  = dataset['abs_vorticity'][maxsteps -2].values
+        zeta_t1 = dataset['abs_vorticity'][maxsteps -1].values.copy()
+        zeta_t0  = dataset['abs_vorticity'][maxsteps -2].values.copy()
         dzetadt = (zeta_t1 - zeta_t0) / deltat
     else:
-        zeta_t1 = dataset['abs_vorticity'][time_index + 1].values
-        zeta_t0  = dataset['abs_vorticity'][time_index -1].values
+        zeta_t1 = dataset['abs_vorticity'][time_index + 1].values.copy()
+        zeta_t0  = dataset['abs_vorticity'][time_index -1].values.copy()
         dzetadt = (zeta_t1 - zeta_t0) / (2 * deltat)
         
     error = dzetadt - vadv - f_adv
@@ -926,7 +927,7 @@ else:
 
     #
     # create a new dataset with the winds, vorticity in it.
-    timestamps = fc_ds_baro["time"].values
+    timestamps = fc_ds_baro["time"].values.copy()
     start_time = timestamps[0]
     print("Start time: ", start_time)
     
@@ -978,9 +979,9 @@ else:
 #        geopot = north_wind_v2(geopot, lat_lin, lon_lin)
         # geopot = ridge_and_trough()
 # verion 3 uses mu with gradient calls
-        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
+#        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
         #        version 2 uses my centereed differences≈
-#        winds_u, winds_v, zeta3, speed3 = prescribe_winds2()
+        winds_u, winds_v, zeta3, speed3 = prescribe_winds2()
         #
         zeta = zeta3
         speed = speed3
