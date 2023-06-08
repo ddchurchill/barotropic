@@ -24,6 +24,7 @@ class wxplots:
         fig, ax = plt.subplots(2,2,\
                                figsize=(20, 10), \
                                subplot_kw={'projection': ccrs.PlateCarree()})
+        fig.suptitle('Winds, Heights, Vorticity at ' + time_str)
 
         # Draw parallels and meridians
         parallels = range(min_lat, max_lat, 10)
@@ -41,7 +42,7 @@ class wxplots:
         units  = r'$(m)$'
         z500_bar.set_label('500 mb heights ' + units)
         
-        ax[0,0].set_title('Winds and Heights ' + time_str)
+        ax[0,0].set_title('Winds and Heights ' )
 
         # draw the winds
         m = Basemap(projection='cyl', llcrnrlat=min_lat, \
@@ -52,29 +53,30 @@ class wxplots:
         ax[0,0].quiver(x[::5, ::5], y[::5, ::5], u[::5, ::5], v[::5, ::5], \
                        scale=3000, color='black')
 
-
+        # plot relative vorticity
         zeta_con = ax[0,1].contourf(lon_lin, lat_lin, zeta, cmap='jet', \
-                                 levels = 16)
-#                                 vmin=0., vmax=3.e-4, extend='neither')
+                                    levels = 16,
+                                 vmin=-2.e-5, vmax=2.e-5, extend='neither')
 
         zeta_bar = plt.colorbar(zeta_con, ax=ax[0,1], orientation='horizontal')
-        ax[0,1].set_title('Relative Vorticity ' + time_str)
+        ax[0,1].set_title('Relative Vorticity ' )
         units  = r'$(s^{-1})$'
         zeta_bar.set_label('Vorticity ' + units)
          
+        # plot absolute vorticity
         abs_vor_con = ax[1,1].contourf(lon_lin,lat_lin,abs_vor, \
-                                levels=16, cmap='jet')
-#                                vmin=0., vmax=3.e-4, extend='neither')
+                                       levels=16, cmap='jet',
+                                vmin=0., vmax=2.e-4, extend='neither')
 
         abs_vor_bar = plt.colorbar(abs_vor_con, ax=ax[1,1], orientation='horizontal')
-        ax[1,1].set_title('Absolute Vorticity ' + time_str)
+        ax[1,1].set_title('Absolute Vorticity ')
         units  = r'$(s^{-1})$'
         abs_vor_bar.set_label('Vorticity ' + units)
 
 
 
         speed_con = ax[1,0].contourf(lon_lin,lat_lin,speed, levels=16, cmap='jet')
-        ax[1,0].set_title('Wind Speed ' + time_str)
+        ax[1,0].set_title('Wind Speed ' )
         speed_bar = plt.colorbar(speed_con, ax=ax[1,0], orientation='horizontal')
         units  = r'$(m \,s^{-1})$'
         speed_bar.set_label('Speed ' + units)
@@ -93,7 +95,8 @@ class wxplots:
             axis.set_ylim(bottom=min_lat, top=max_lat)
         plt.tight_layout() # this is needed to prevent overlapping figures.
 
-            #    plt.savefig(filename)
+        filename = 'wind-vort-' + time_str + '.png'
+        plt.savefig(filename)
 
         plt.show()
         plt.close()
