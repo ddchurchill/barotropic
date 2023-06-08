@@ -10,13 +10,12 @@ class wxplots:
     def __init__(self):
         self.a = 0
         
-    def plot_4panel(self, dataset, time_index, time_str):
+    def plot_4panel(self, dataset, time_index, time_str, show_plot):
 
         zeta = dataset['rel_vorticity'][time_index].values.copy()
         abs_vor = dataset['abs_vorticity'][time_index].values.copy()
         z500 = dataset['z500'][time_index].values.copy()
         speed = dataset['speed'][time_index].values.copy()
-        lats = dataset['lat'].values
 
         u = dataset['wind_u'][time_index].values.copy()
         v = dataset['wind_v'][time_index].values.copy()
@@ -41,7 +40,7 @@ class wxplots:
         z500_bar = plt.colorbar(z500_con, ax=ax[0,0], orientation='horizontal')
         units  = r'$(m)$'
         z500_bar.set_label('500 mb heights ' + units)
-        
+        z500_con.set_clim(vmin=5000, vmax=6000)        
         ax[0,0].set_title('Winds and Heights ' )
 
         # draw the winds
@@ -62,7 +61,7 @@ class wxplots:
         ax[0,1].set_title('Relative Vorticity ' )
         units  = r'$(s^{-1})$'
         zeta_bar.set_label('Vorticity ' + units)
-         
+        zeta_con.set_clim(vmin=-2.e-5, vmax=2.e-5)                 
         # plot absolute vorticity
         abs_vor_con = ax[1,1].contourf(lon_lin,lat_lin,abs_vor, \
                                        levels=16, cmap='jet',
@@ -72,15 +71,17 @@ class wxplots:
         ax[1,1].set_title('Absolute Vorticity ')
         units  = r'$(s^{-1})$'
         abs_vor_bar.set_label('Vorticity ' + units)
+        abs_vor_con.set_clim(vmin=0., vmax=2.e-4)        
 
-
-
-        speed_con = ax[1,0].contourf(lon_lin,lat_lin,speed, levels=16, cmap='jet')
+        # plot wind speed
+        speed_con = ax[1,0].contourf(lon_lin,lat_lin,speed, \
+                                     vmin=0, vmax=80.,
+                                     levels=16, cmap='jet')
         ax[1,0].set_title('Wind Speed ' )
         speed_bar = plt.colorbar(speed_con, ax=ax[1,0], orientation='horizontal')
         units  = r'$(m \,s^{-1})$'
         speed_bar.set_label('Speed ' + units)
-
+        speed_con.set_clim(vmin=0, vmax=80)        
         # Draw the continents and coastlines in white
         for axis in ax.flat:
             axis.coastlines(linewidth=0.5, color='black')
@@ -98,7 +99,8 @@ class wxplots:
         filename = 'wind-vort-' + time_str + '.png'
         plt.savefig(filename)
 
-        plt.show()
+        if show_plot:
+            plt.show()
         plt.close()
 # main program
 if __name__ == "__main__":
@@ -109,8 +111,11 @@ if __name__ == "__main__":
     time_index = 1
     start_time = data["time"].values
     print("Start time: ", start_time)
-    time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
-    time_str = np.datetime_as_string(time_stamp, unit='s')
-    p = wxplots()
-    p.plot_4panel(data, time_index, time_str)
+    p = wxplots() # class containing plotting routine
+    show_plot = False
+    for time_index in range(0,48):
+        time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
+        time_str = np.datetime_as_string(time_stamp, unit='s')
+
+        p.plot_4panel(data, time_index, time_str, show_plot)
 
