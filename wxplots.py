@@ -16,11 +16,10 @@ class wxplots:
         abs_vor = dataset['abs_vorticity'][time_index].values.copy()
         z500 = dataset['z500'][time_index].values.copy()
         speed = dataset['speed'][time_index].values.copy()
+        lats = dataset['lat'].values
+
         u = dataset['wind_u'][time_index].values.copy()
         v = dataset['wind_v'][time_index].values.copy()
-        x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
-        y = EARTH_RADIUS * lat_rad
-
     
         fig, ax = plt.subplots(2,2,\
                                figsize=(20, 10), \
@@ -33,13 +32,14 @@ class wxplots:
         for axis in ax.flat:
             axis.set_extent([min_lon, max_lon, min_lat, max_lat])
 
-        con1 = ax[0,0].contourf(lon_lin, lat_lin,z500,\
+        z500_con = ax[0,0].contourf(lon_lin, lat_lin,z500,\
                             vmin=5000., vmax=6000., \
                             levels=16, cmap='jet', \
                             transform=ccrs.PlateCarree())
 
-        cbar = plt.colorbar(con1, ax=ax[0,0], orientation='horizontal')
-        cbar.set_label('(m)')
+        z500_bar = plt.colorbar(z500_con, ax=ax[0,0], orientation='horizontal')
+        units  = r'$(m)$'
+        z500_bar.set_label('500 mb heights ' + units)
         
         ax[0,0].set_title('Winds and Heights ' + time_str)
 
@@ -53,27 +53,31 @@ class wxplots:
                        scale=3000, color='black')
 
 
-        con2 = ax[0,1].contourf(lon_lin, lat_lin, zeta, cmap='jet', \
+        zeta_con = ax[0,1].contourf(lon_lin, lat_lin, zeta, cmap='jet', \
                                  levels = 16)
 #                                 vmin=0., vmax=3.e-4, extend='neither')
 
-        plt.colorbar(con2, ax=ax[0,1], orientation='horizontal')
+        zeta_bar = plt.colorbar(zeta_con, ax=ax[0,1], orientation='horizontal')
         ax[0,1].set_title('Relative Vorticity ' + time_str)
-
+        units  = r'$(s^{-1})$'
+        zeta_bar.set_label('Vorticity ' + units)
          
-        con3 = ax[1,1].contourf(lon_lin,lat_lin,abs_vor, \
-                                levels=16, cmap='jet', \
-                                vmin=0., vmax=3.e-4, extend='neither')
+        abs_vor_con = ax[1,1].contourf(lon_lin,lat_lin,abs_vor, \
+                                levels=16, cmap='jet')
+#                                vmin=0., vmax=3.e-4, extend='neither')
 
-        plt.colorbar(con3, ax=ax[1,1], orientation='horizontal')
+        abs_vor_bar = plt.colorbar(abs_vor_con, ax=ax[1,1], orientation='horizontal')
         ax[1,1].set_title('Absolute Vorticity ' + time_str)
-    
+        units  = r'$(s^{-1})$'
+        abs_vor_bar.set_label('Vorticity ' + units)
 
 
 
-        con4 = ax[1,0].contourf(lon_lin,lat_lin,speed, levels=16, cmap='jet')
+        speed_con = ax[1,0].contourf(lon_lin,lat_lin,speed, levels=16, cmap='jet')
         ax[1,0].set_title('Wind Speed ' + time_str)
-        plt.colorbar(con4, ax=ax[1,0], orientation='horizontal')
+        speed_bar = plt.colorbar(speed_con, ax=ax[1,0], orientation='horizontal')
+        units  = r'$(m \,s^{-1})$'
+        speed_bar.set_label('Speed ' + units)
 
         # Draw the continents and coastlines in white
         for axis in ax.flat:
@@ -86,7 +90,7 @@ class wxplots:
             axis.set_yticks(parallels, crs=ccrs.PlateCarree())
             axis.xaxis.set_ticklabels([])
             axis.yaxis.set_ticklabels([])
-
+            axis.set_ylim(bottom=min_lat, top=max_lat)
         plt.tight_layout() # this is needed to prevent overlapping figures.
 
             #    plt.savefig(filename)
