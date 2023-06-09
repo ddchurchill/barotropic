@@ -327,7 +327,7 @@ def prescribe_winds2():
     #
     d2zdx2, unused = centered_diff(dzdx, x, y)
     unused, d2zdy2 = centered_diff(dzdy, x, y)
-    zeta = (d2zdx2 + d2zdy2)/f
+    zeta = GRAVITY * (d2zdx2 + d2zdy2)/f
     return ug, vg, zeta, speed
 
 def prescribe_winds(): 
@@ -763,29 +763,15 @@ def plot_all_fields(dataset, nsteps, deltat, showplot):
         time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
         time_str = np.datetime_as_string(time_stamp, unit='s')
         plot_vort_advection(data, time_index, time_str, deltat, showplot)
-        plot_winds_v2(data,time_index, time_str, showplot) 
-        plot_speed_v2(data,time_index, time_str, showplot)
+#        plot_winds_v2(data,time_index, time_str, showplot) 
+#        plot_speed_v2(data,time_index, time_str, showplot)
         # plot the absolute  voriticity
-        plot_vort_v2(data,time_index, time_str, showplot)
+#        plot_vort_v2(data,time_index, time_str, showplot)
         # plot relative vorticity
-        plot_rel_vort_v2(data,time_index, time_str, showplot)
+#        plot_rel_vort_v2(data,time_index, time_str, showplot)
 
 # done making and saving plots.
 #
-# interpolate vorticity into each node of each trajectory
-#
-#def interp_vorticity(dataset, trajectory_list):
-#
-#
-#    for trajectory in trajectory_list:
-#        for p in trajectory.points:
-#            p.vort = dataset['abs_vorticity'].interp(lat=p.lat, lon=p.lon,
-#                                                 time=p.timestamp)
-#            
-#    print("Vorticities were added to trajectoriea")
-#    return
-
-
 
 #
 # interpolate the height data from the dataset at 1 deg lat
@@ -804,9 +790,9 @@ def interp_z(ds, time, step, lats, lons):
                                         
     return h
 # make a 4-penal plot of vorticity equation terms and sums
-def plot_vort_terms(dataset, deltat , showplot):
+def plot_vort_terms(dataset, deltat , time_index, showplot):
 
-    time_index = 10
+
     zeta = dataset['rel_vorticity'][time_index].values.copy()
     u = dataset['wind_u'][time_index].values
     v = dataset['wind_v'][time_index].values
@@ -900,12 +886,17 @@ def plot_vort_terms(dataset, deltat , showplot):
         axis.xaxis.set_ticklabels([])
         axis.yaxis.set_ticklabels([])
 
-#    plt.tight_layout() # this is needed to prevent overlapping figures.
+    plt.tight_layout() # this is needed to prevent overlapping figures.
 
-#    plt.savefig(filename)
-#    plt.close()
-    plt.show()
+    start_time = dataset['time'].values
+    time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
+    time_str = np.datetime_as_string(time_stamp, unit='s')
+    filename = 'vort_terms_' + time_str + '.png'
+    fig.suptitle('Vorticity terms, ' + time_str)
+    plt.savefig(filename)
 
+#    plt.show()
+    plt.close()
 
 
 # main program:
@@ -1014,7 +1005,9 @@ deltat = dt_hours * 3600
 plot_all_fields(data, maxsteps, deltat, show_plots)
 #
 # plot all vorticity terms
-plot_vort_terms(data, deltat, True)
+nsteps = 48 # number of step to integrate over
+for time_index in range(0, nsteps):
+    plot_vort_terms(data, deltat, time_index, show_plots)
 # Plotting the trajectories
 #
 
@@ -1026,7 +1019,7 @@ start_time = data['time']
 #
 
 
-nsteps = 48 # number of step to integrate over
+
 
 
 # plot trajectoriea at given time periods
