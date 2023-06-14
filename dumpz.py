@@ -3,16 +3,6 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 from traject_constants import * 
-min_lon = -56
-max_lon = -54
-min_lat = 34
-max_lat = 36
-nlat = max_lat - min_lat +1
-
-nlon = max_lon - min_lon +1
-print(nlat, nlon)
-lat_lin = np.linspace(min_lat, max_lat, nlat)
-lon_lin = np.linspace(min_lon, max_lon, nlon)
 def laplacian(data, dx, dy):
     nrows, ncols = data.shape
     laplace = np.zeros((nrows, ncols))
@@ -48,6 +38,15 @@ def print_array(data):
 
 #print("lat_lin: ",lat_lin)
 
+min_lon = -56
+max_lon = -54
+min_lat = 34
+max_lat = 36
+nlat = max_lat - min_lat +1
+
+nlon = max_lon - min_lon +1
+print(nlat, nlon)
+lat_lin = np.linspace(min_lat, max_lat, nlat)
 lon_lin = np.linspace(min_lon, max_lon, nlon)
 lon, lat = np.meshgrid(lon_lin, lat_lin)
 phi_rad = np.array(lat_lin * np.pi/180.)  # latitude in radians
@@ -62,8 +61,12 @@ steps =  dataset.variables['step']
 nsteps = len(steps)
 step = 7 # 7z on 15th 
 
-
-
+x = np.cos(np.deg2rad(lat_lin))*EARTH_RADIUS*np.cos(np.deg2rad(lon_lin))
+y = EARTH_RADIUS * np.deg2rad(lat_lin)
+dx = np.diff(x)
+dy = np.diff(y)
+print("dx: ", dx)
+print("dy:", dy)
 #
 timestamps = dataset["time"].values.copy()
 forecast_init_time = timestamps[0] # 15Sep 2007
