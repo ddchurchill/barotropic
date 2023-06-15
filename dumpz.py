@@ -6,8 +6,12 @@ from traject_constants import *
 def laplacian(data, x, y):
     nrows, ncols = data.shape
     laplace = np.zeros((nrows, ncols))
+    delsquared = np.zeros((nrows,ncols))
     dx = np.zeros((nrows, ncols))
     ddx = np.zeros((nrows, ncols))
+    d2x = np.zeros((nrows, ncols))
+    d2y = np.zeros((nrows, ncols))    
+
     dy = np.zeros((nrows, ncols))
     ddy = np.zeros((nrows, ncols))    
     print("size: ", nrows, ncols)
@@ -17,11 +21,12 @@ def laplacian(data, x, y):
             dy[i,j] = y[i+1,j] - y[i,j]
             ddx[i,j] = (data[i,j+1] - data[i,j-1])/(2 * dx[i,j])
             ddy[i,j] = (data[i+1,j] - data[i-1,j])/(2 * dy[i,j])
-            d2x =  data[i,j+1] - 2*data[i,j] + data[i,j-1]
-            d2y = data[i+1,j] - 2*data[i,j] + data[i-1,j]
-            laplace[i,j] = d2x/dx[i,j]**2 + d2y/dy[i,j]**2
+            d2x[i,j] =  data[i,j+1] - 2*data[i,j] + data[i,j-1]
+            d2y[i,j] = data[i+1,j] - 2*data[i,j] + data[i-1,j]
+            delsquared[i,j] = d2x[i,j] + d2y[i,j]
+            laplace[i,j] = d2x[i,j]/dx[i,j]**2 + d2y[i,j]/dy[i,j]**2            
 
-    return laplace, dx, dy, ddx, ddy
+    return laplace, dx, dy, ddx, ddy, d2x, d2y, delsquared
 
 def get_timestamp(start_time, time_step):
     time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_step))
@@ -107,7 +112,7 @@ h500 = derived.sel({
     "lon": slice(min_lon, max_lon)
 })['z500'].values.copy()
 
-rel_vorticity = derived.sel({
+looked_rel_vorticity = derived.sel({
     "step": steps[step],
     "lat": slice(min_lat, max_lat),
     "lon": slice(min_lon, max_lon)
@@ -128,25 +133,29 @@ rel_vorticity = derived.sel({
 print_array('h500', h500)
 
 
-zeta, dx, dy, ddx, ddy  = laplacian(h500, x, y)
+zeta, dx, dy, ddx, ddy, d2x, d2y, delsquared  = laplacian(h500, x, y)
 
 print_array("Dx", dx)
 print_array('Dy', dy)
 print_array('ddx', ddx)
 print_array('ddy', ddy)
+print_array('d2x', d2x)
+print_array('d2y', d2y)
 print_array('Laplacian', zeta)
+print_array('Del squared', delsquared)
 print_array('coriolis', f)
 
 # compute vorticity, multiply by gravity, divide by f
-vorticity = zeta * GRAVITY / f
-print_array('vorticity', vorticity)
+computed_rel_vorticity = zeta * GRAVITY / f
+print_array('Computed Vorticity', computed_rel_vorticity)
 f_35deg = 2. * OMEGA * np.sin(np.deg2rad(35.))
 print("Omega: ", OMEGA)
 print("f 35 deg: ", f_35deg)
-print_array('Rel vorticity', rel_vorticity)
+print_array('Looked up Rel vorticity', looked_rel_vorticity)
 
 u = -GRAVITY/f*ddy
 v = GRAVITY/f*ddx
+ 
 speed = np.sqrt(u*u + v*v)
 print_array('Computed U', u)
 print_array('Computed V', v)
@@ -178,3 +187,16 @@ look_speed = derived.sel({
 print_array('Looked up U', wind_u)
 print_array('Looked up V', wind_v)
 print_array('Looked up speed', look_speed)
+dx0 = dx[1,1]
+dy0 = dy[1,1]
+f0 = f_35deg
+h0 = h500[1,1]
+h1 = h500[1,2]
+h3 = h500[1,0]
+h4 = h500[0,1]
+h2 = h500[2,1]
+laplace0 = h1 + h2 + h3 + h4 - 4*h0
+print("h0 =", h0, "h1=",h1," h2=",h2," h3=", h3," h4=", h4)
+print('laplace0', laplace0)
+zeta1 = (d2x/dx**2 + d2y/dy**2)*GRAVITY/f
+print_array('Computed vorticity',zeta1)
