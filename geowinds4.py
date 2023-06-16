@@ -970,9 +970,9 @@ else:
 #        geopot = north_wind_v2(geopot, lat_lin, lon_lin)
         # geopot = ridge_and_trough()
 # verion 3 uses mu with gradient calls
-#        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
+        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
         #        version 2 uses my centereed differences≈
-        winds_u, winds_v, zeta3, speed3 = prescribe_winds2()
+#        winds_u, winds_v, zeta3, speed3 = prescribe_winds2()
         #
         zeta = zeta3
         speed = speed3
