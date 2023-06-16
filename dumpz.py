@@ -87,7 +87,8 @@ if __name__ == "__main__":
 
     
     steps =  dataset.variables['step']
-
+    print("Dataset steps:", steps)
+    
     step = 7 # 7z on 15th 
     
     timestamps = dataset["time"].values.copy()

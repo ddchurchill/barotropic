@@ -17,6 +17,9 @@ import scipy.interpolate
 import xarray as xr
 
 from velocity import Velocity as vel
+from dumpz import laplacian # compute laplacian of height field
+from dumpz import print_array
+from util import get_timestamp
 #from trajectory import Trajectory 
 #from traject import euler
 #from traject import huen
@@ -25,10 +28,6 @@ from traject_constants import *
 from plot_traject_arrows import *
 # constants
 
-def get_timestamp(start_time, time_step):
-    time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_step))
-    dt_str = np.datetime_as_string(time_stamp, unit='s')
-    return dt_str, time_stamp
 
 
 def wind_and_vorticity(lon_grid, lat_grid, z_field, lat_spacing, lon_spacing):
@@ -350,6 +349,31 @@ def prescribe_winds():
     zeta = dvdx - dudy
 #
     return wind_vector, zeta, speed
+
+def prescribe_winds4(): # use new laplacian code.
+    """
+    prescribe_winds4 - 
+    uses manual centered differences to differentiate for winds and vorticity
+    """
+    x_coord = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
+    y_coord = EARTH_RADIUS * lat_rad
+#    print("winds4 z:", geopot)
+    zeta, dx, dy, ddx, ddy, d2x, d2y, delsquared  = \
+        laplacian(geopot, x_coord, y_coord)
+#    print("dx", dx)
+#    print("dy", dy)
+    
+
+    
+    ug = -GRAVITY/f*ddy
+    vg = GRAVITY/f*ddx
+    
+    speed = np.sqrt(ug**2 + vg**2)
+    #
+    zeta = (d2x/dx**2 + d2y/dy**2)*GRAVITY/f
+
+    return ug, vg, zeta, speed
+
 def plot_winds(wind_data):
         ## Create a new figure
     fig = plt.figure(figsize=(12, 8))
@@ -774,21 +798,6 @@ def plot_all_fields(dataset, nsteps, deltat, showplot):
 #
 
 #
-# interpolate the height data from the dataset at 1 deg lat
-# to new one at 0.5 deg
-def interp_z(ds, time, step, lats, lons):
-
-    h = np.empty((len(lats), len(lons)))
-    d = ds['z500'].sel(time=time, step=step)
-    for i, lat in enumerate(lats):
-        for j, lon in enumerate(lons):
-
-            z = d.interp(lat=lat, lon=lon, method='slinear')
-    
-            h[i][j] = z
-                
-                                        
-    return h
 # make a 4-penal plot of vorticity equation terms and sums
 def plot_vort_terms(dataset, deltat , time_index, showplot):
 
@@ -903,6 +912,7 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
 # Read winds and vorticity from NetCDF file if it exists. Else create it.
 #
 # repeat for each step up to 48 hours out.
+# should be set to 48
 maxsteps = 48  # maximum number of time steps we want to analyze
 
 dataset_file = 'vortdata_steps.nc'
@@ -962,15 +972,14 @@ else:
 
         # query the height data from the dataset
         geopot = baro_fcst(start_time, steps[step]) 
-# interp_z is not working. dont use it.
-#        geopot = interp_z(fc_ds_baro, start_time, steps[step],\
-#                          lat_lin, lon_lin)
 # these test patterns do work.
 #        geopot = south_wind_v2(geopot, lat_lin, lon_lin)
 #        geopot = north_wind_v2(geopot, lat_lin, lon_lin)
         # geopot = ridge_and_trough()
 # verion 3 uses mu with gradient calls
-        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
+#        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
+# version 4 uses centered differences that I validated in file dumpz.py
+        winds_u, winds_v, zeta3, speed3 = prescribe_winds4()
         #        version 2 uses my centereed differences≈
 #        winds_u, winds_v, zeta3, speed3 = prescribe_winds2()
         #
@@ -1007,6 +1016,7 @@ plot_all_fields(data, maxsteps, deltat, show_plots)
 # plot all vorticity terms
 nsteps = 48 # number of step to integrate over
 for time_index in range(0, nsteps):
+    print("Plotting vorticity terms ", time_index)
     plot_vort_terms(data, deltat, time_index, show_plots)
 # Plotting the trajectories
 #

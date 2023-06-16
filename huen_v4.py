@@ -52,7 +52,7 @@ def huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat):
     # lat0 and lon0 are the starting  point of the trajectory
     lat0:float; lat1:float; lon0: float; lon1: float
     dx:float; dy:float
-    initial_time = dataset['time'].values
+    initial_time = dataset['time'].values.copy()
     start_time_str, start_time_stamp = get_timestamp(initial_time, start_step)
     stop_time_str, stop_time_stamp = get_timestamp(initial_time, nsteps)
 
