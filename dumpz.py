@@ -1,10 +1,13 @@
+import sys
 import pprint
 import xarray as xr
 import numpy as np
 import pandas as pd
+from util import get_timestamp
 from traject_constants import * 
-def laplacian(data, x, y):
+def laplacian(data, x_coord, y_coord):
     nrows, ncols = data.shape
+    print("Laplacian: shape is ", nrows, ",", ncols)
     laplace = np.zeros((nrows, ncols))
     delsquared = np.zeros((nrows,ncols))
     dx = np.zeros((nrows, ncols))
@@ -14,11 +17,10 @@ def laplacian(data, x, y):
 
     dy = np.zeros((nrows, ncols))
     ddy = np.zeros((nrows, ncols))    
-    print("size: ", nrows, ncols)
-    for i in 1, nrows -2:
-        for j in 1, ncols -2:
-            dx[i,j] = x[i,j+1] - x[i,j]
-            dy[i,j] = y[i+1,j] - y[i,j]
+    for i in range(1, nrows -1):
+        for j in range( 1, ncols -1):
+            dx[i,j] = x_coord[i,j+1] - x_coord[i,j]
+            dy[i,j] = y_coord[i+1,j] - y_coord[i,j]
             ddx[i,j] = (data[i,j+1] - data[i,j-1])/(2 * dx[i,j])
             ddy[i,j] = (data[i+1,j] - data[i-1,j])/(2 * dy[i,j])
             d2x[i,j] =  data[i,j+1] - 2*data[i,j] + data[i,j-1]
@@ -28,11 +30,9 @@ def laplacian(data, x, y):
 
     return laplace, dx, dy, ddx, ddy, d2x, d2y, delsquared
 
-def get_timestamp(start_time, time_step):
-    time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_step))
-    dt_str = np.datetime_as_string(time_stamp, unit='s')
-    return dt_str, time_stamp
-
+#
+# pretty print an array of data with its title
+#
 def print_array(title, data):
     line = "_" * 60
     print()
@@ -55,9 +55,12 @@ def print_array(title, data):
     print("-"*60)
 
 
-#print("lat_lin: ",lat_lin)
 if __name__ == "__main__":
-
+    #
+    # select a small window of data to print out, and calculate
+    # the winds, and vorticity, both computed here and looked up in the
+    # dataset file vortdata_steps.nc
+    #
     min_lon = -56
     max_lon = -54
     min_lat = 34
@@ -65,7 +68,6 @@ if __name__ == "__main__":
     nlat = max_lat - min_lat +1
     
     nlon = max_lon - min_lon +1
-    print(nlat, nlon)
     lat_lin = np.linspace(min_lat, max_lat, nlat)
     lon_lin = np.linspace(min_lon, max_lon, nlon)
     lon, lat = np.meshgrid(lon_lin, lat_lin)
@@ -81,28 +83,29 @@ if __name__ == "__main__":
     print_array('Y', y)#
     
     dataset = xr.open_dataset("forecasts_baro-spharm_2007-04-15_2007-04-18.nc")
-#    dataset = dataset.roll({"lon": 180})
+    dataset = dataset.roll({"lon": 180})
+
     
     steps =  dataset.variables['step']
-#    print("steps", steps)
-#    nsteps = len(steps)
+
     step = 7 # 7z on 15th 
     
-#    timestamps = dataset["time"].values.copy()
-#    forecast_init_time = timestamps[0] # 15Sep 2007
-#    start_time_str, start_time = get_timestamp(forecast_init_time, step)
-#    print("start time: ", start_time_str)
+    timestamps = dataset["time"].values.copy()
+    forecast_init_time = timestamps[0] # 15Sep 2007
+    start_time_str, start_time = get_timestamp(forecast_init_time, step)
+    print("Forecast init time: ", forecast_init_time)
+    print("start time: ", start_time_str)
     #
     # get a window of height data, centered over a jet streak
     #
-    #z500 = dataset.sel({
-    #    "time": forecast_init_time,
-    #    "step": steps[step],
-    #    "lat": slice(max_lat, min_lat),
-    #    "lon": slice(180+min_lon, 180+max_lon)
-    #})['z500'].values.copy()
+    z500 = dataset.sel({
+        "time": forecast_init_time,
+        "step": steps[step],
+        "lat": slice(max_lat, min_lat),
+        "lon": slice(180+min_lon, 180+max_lon)
+    })['z500'].values.copy()
     
-    #z500 = np.flip(z500,axis=0) # flip the data as in geowinds4.
+    z500 = np.flip(z500,axis=0) # flip the data as in geowinds4.
     #
     # now get the derived data set
     #
@@ -120,19 +123,19 @@ if __name__ == "__main__":
         "lon": slice(min_lon, max_lon)
     })['rel_vorticity'].values.copy()
     
+    print_array('z500', z500)
+    print_array('h500', h500)
     #
     # h500 and z500 should be identical
     #
-    #mse = np.mean((h500 - z500) ** 2)
-    #rmse = np.sqrt(mse)
-    #if rmse != 0:
-    #    print("Error: z500 and h500 differ")
-    #    sys.exit()
+    mse = np.mean((h500 - z500) ** 2)
+    rmse = np.sqrt(mse)
+    if rmse != 0:
+        print("Error: z500 and h500 differ")
+        sys.exit()
     #
     # print a tables of data
     #
-    #print_array('z500', z500)
-    print_array('h500', h500)
     
     
     zeta, dx, dy, ddx, ddy, d2x, d2y, delsquared  = laplacian(h500, x, y)
@@ -165,7 +168,7 @@ if __name__ == "__main__":
     #
     # look up U, V, Speed
     #
-    
+    print("Step ", step, " has steps value ", steps[step].values)
     wind_u = derived.sel({
         "step": steps[step],
         "lat": slice(min_lat, max_lat),
