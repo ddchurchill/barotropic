@@ -140,9 +140,14 @@ def huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat):
                             0., 0., timeindex)
 
     point.vort = getvort_v4(dataset,point.lat, point.lon, timeindex)
-
-    trajectory.points.append(point)
-    trajectory.length += 1
+    #
+    # append this point if the vorticity value is good
+    if np.isnan(point.vort):\
+        # decrement the timeindex, and forget the final point
+        timeindex -= 1
+    else: # final point data is good, so append it
+        trajectory.points.append(point)
+        trajectory.length += 1
 #
 # update the trajectory stopping time using last point in trajectory
 #
