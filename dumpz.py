@@ -70,15 +70,16 @@ if __name__ == "__main__":
     # the winds, and vorticity, both computed here and looked up in the
     # dataset file vortdata_steps.nc
     #
-    min_lon = -126
-    max_lon = -124
-
-    min_lat = 34
-    max_lat = 36
     lat0 = 35 # latitude of center of box
     lon0 = -125 # lon of center of box
+
+    min_lon = lon0 -1
+    max_lon = lon0 +1
+
+    min_lat = lat0 - 1
+    max_lat = lat0 + 1
 #    step = 7 # 7z on 15th
-    step = 0 # 0z 15th April 2007
+    step = 1 # 1z 15th April 2007
     nlat = max_lat - min_lat +1
     
     nlon = max_lon - min_lon +1
@@ -259,6 +260,8 @@ if __name__ == "__main__":
     print('Computed vorticity',zeta1)
     if zeta1 != looked_rel_vorticity[1,1]:
         print('Computed vorticity and looked up differ')
+        print('Computed = ', zeta1)
+        print('Looked up =', looked_rel_vorticity[1,1])
         sys.exit()
     else:
         print('Computed and looked up vorticity agree')
@@ -287,6 +290,8 @@ if __name__ == "__main__":
         print("Computed absolute voriticity agreed with getvort_v4")
     else:
         print("Computed absolute voriticitu differs from getvort")
+        print("computed =", abs_vort_computed)
+        print("Looked up:", zeta2)
         sys.exit()
     print("All tests passed")
     
