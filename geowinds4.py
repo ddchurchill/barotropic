@@ -1015,9 +1015,12 @@ plot_all_fields(data, maxsteps, deltat, show_plots)
 #
 # plot all vorticity terms
 nsteps = 48 # number of step to integrate over
-for time_index in range(0, nsteps):
-    print("Plotting vorticity terms ", time_index)
-    plot_vort_terms(data, deltat, time_index, show_plots)
+plot_vort_terms = False
+if plot_vort_terms:
+    for time_index in range(0, nsteps):
+        print("Plotting vorticity terms ", time_index)
+        plot_vort_terms(data, deltat, time_index, show_plots)
+        
 # Plotting the trajectories
 #
 
@@ -1033,8 +1036,9 @@ start_time = data['time']
 
 
 # plot trajectoriea at given time periods
-do_plot_trajectories = True
-if do_plot_trajectories:
+do_trajectories = True
+plot_trajectories = False
+if do_trajectories:
     print("Computing trajectories")
     #
     # set the first time step we want the trajecotreis to use after the
@@ -1051,13 +1055,14 @@ if do_plot_trajectories:
     stop_time_str, stop_time = get_timestamp(start_time, start_step + nsteps)
     print(start_time_str, stop_time_str)
 
-    print("Plotting trajectories")
-    plot_trajectories(trajectories, start_time, stop_time)
+    if plot_trajectories:
+        print("Plotting trajectories")
+        plot_trajectories(trajectories, start_time, stop_time)
 
-    # print each trajectory with a vorticity timeline
-    for i, t in enumerate(trajectories):
-        filename = "tstep_" + str(dt_hours) + "hour" + str(i)
-        plot_one_trajectory(t,filename, start_time, stop_time)
-        print("saved ", filename)
+        # print each trajectory with a vorticity timeline
+        for i, t in enumerate(trajectories):
+            filename = "tstep_" + str(dt_hours) + "hour" + str(i)
+            plot_one_trajectory(t,filename, start_time, stop_time)
+            print("saved ", filename)
 
 

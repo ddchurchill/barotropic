@@ -22,12 +22,15 @@ def getwind_v4(ds, lat, lon, step):
                                        assume_sorted=True)
     wind_v = ds['wind_v'][step].interp(lat=lat, lon=lon, method=method,
                                        assume_sorted=True)
-    return copy.copy(wind_u), copy.copy(wind_v)
+    return wind_u.values, wind_v.values
 def getvort_v4(ds, lat, lon, step):
+
     vort   = ds['abs_vorticity'][step].interp(lat=lat, lon=lon, \
                                               method=method,
                                               assume_sorted=True)
-    return copy.copy(vort)
+    v = vort.values
+#    print("getvort_4: ", lat, lon, step, v)
+    return v
 
 #
 # input the Xarray dataset, that can interpolated
@@ -58,8 +61,8 @@ def huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat):
 
     trajectory = Trajectory_v2(lat0, lon0, deltat, \
                                start_time_stamp, stop_time_stamp)
-    lat1 = lat0
-    lon1 = lon0  
+    lat1 = copy.copy(lat0)
+    lon1 = copy.copy(lon0)
 # iterate through the timestamps, noting the last one terminates the
 # the last node of the trajectory
     for timeindex in range(start_step,nsteps):
@@ -115,6 +118,7 @@ def huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat):
 
         point = TrajectoryPoint(lat1, lon1, dx, dy, timeindex)
         # interpolate to determine vorticity at this point.
+        print("Huen: lat, lon, time: ", lat1, lon1, timeindex)
         point.vort = getvort_v4(dataset, lat1, lon1, timeindex)
         # add the point to the trajectory
         trajectory.points.append(point)
