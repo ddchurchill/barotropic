@@ -22,13 +22,13 @@ def getwind_v4(ds, lat, lon, step):
                                        assume_sorted=True)
     wind_v = ds['wind_v'][step].interp(lat=lat, lon=lon, method=method,
                                        assume_sorted=True)
-    return wind_u.values, wind_v.values
+    return wind_u.values.copy(), wind_v.values.copy()
 def getvort_v4(ds, lat, lon, step):
 
     vort   = ds['abs_vorticity'][step].interp(lat=lat, lon=lon, \
                                               method=method,
                                               assume_sorted=True)
-    v = vort.values
+    v = vort.values.copy()
 #    print("getvort_4: ", lat, lon, step, v)
     return v
 
@@ -88,8 +88,7 @@ def huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat):
 
         wind_u_bar, wind_v_bar = \
             getwind_v4(dataset, lat_bar, lon_bar, next_time)
-#        wind_u_bar, wind_v_bar = \
-#            getwind(dataset, lat_bar, lon_bar, next_time)
+
 
         
         # again, if no wind found, break out of loop
@@ -118,8 +117,10 @@ def huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat):
 
         point = TrajectoryPoint(lat1, lon1, dx, dy, timeindex)
         # interpolate to determine vorticity at this point.
-        print("Huen: lat, lon, time: ", lat1, lon1, timeindex)
+#        print("Huen: lat, lon, time: ", lat1, lon1, timeindex)
         point.vort = getvort_v4(dataset, lat1, lon1, timeindex)
+        if np.isnan( point.vort):
+            break 
         # add the point to the trajectory
         trajectory.points.append(point)
         trajectory.length += 1  # keep track of length of trajectory
@@ -131,7 +132,10 @@ def huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat):
         lon1 = lon2 
 #
 # add the final point to the trajectory
+# Increment the timeindex by 1, to represent the next point.
+# dx = dy = 0 on this final point. 
 #
+    timeindex += 1
     point = TrajectoryPoint(trajectory.last_lat, trajectory.last_lon,\
                             0., 0., timeindex)
 
