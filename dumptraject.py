@@ -21,8 +21,8 @@ for i, t in enumerate(trajectories):
             continue  # skip NaN values
         step = j # time step is just an iterator
         v = getvort_v4(dataset, p.lat, p.lon, step)
-
-        if v != p.vort:
+        error = np.abs(v - p.vort)
+        if error > 1.e-6:
             print("Point ", j,"time:", p.timestamp,"vort:", p.vort)
             print("\t\t\tlat:", p.lat, "\t lon:", p.lon  )
             print("\t\t\tReference vorticity: ", v)
