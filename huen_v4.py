@@ -117,9 +117,11 @@ def huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat):
 
         point = TrajectoryPoint(lat1, lon1, dx, dy, timeindex)
         # interpolate to determine vorticity at this point.
-#        print("Huen: lat, lon, time: ", lat1, lon1, timeindex)
+        # return value is NaN if out of bounds of domain
+        # return value is zero on edge of domain.
         point.vort = getvort_v4(dataset, lat1, lon1, timeindex)
-        if np.isnan( point.vort):
+
+        if np.isnan( point.vort) or point.vort ==0:
             break 
         # add the point to the trajectory
         trajectory.points.append(point)
@@ -142,7 +144,7 @@ def huen_v4(dataset, lat0, lon0, start_step, nsteps, deltat):
     point.vort = getvort_v4(dataset,point.lat, point.lon, timeindex)
     #
     # append this point if the vorticity value is good
-    if np.isnan(point.vort):\
+    if np.isnan(point.vort) or point.vort == 0:\
         # decrement the timeindex, and forget the final point
         timeindex -= 1
     else: # final point data is good, so append it
