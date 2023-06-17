@@ -5,6 +5,15 @@ import numpy as np
 import pandas as pd
 from util import get_timestamp
 from traject_constants import * 
+def getvort_v4(ds, lat, lon, step):
+
+    vort   = ds['abs_vorticity'][step].interp(lat=lat, lon=lon, \
+                                              method='slinear',
+                                              assume_sorted=True)
+    v = vort.values.copy()
+#    print("getvort_4: ", lat, lon, step, v)
+    return v
+
 def laplacian(data, x_coord, y_coord):
     nrows, ncols = data.shape
     print("Laplacian: shape is ", nrows, ",", ncols)
@@ -61,10 +70,15 @@ if __name__ == "__main__":
     # the winds, and vorticity, both computed here and looked up in the
     # dataset file vortdata_steps.nc
     #
-    min_lon = -56
-    max_lon = -54
+    min_lon = -126
+    max_lon = -124
+
     min_lat = 34
     max_lat = 36
+    lat0 = 35 # latitude of center of box
+    lon0 = -125 # lon of center of box
+#    step = 7 # 7z on 15th
+    step = 0 # 0z 15th April 2007
     nlat = max_lat - min_lat +1
     
     nlon = max_lon - min_lon +1
@@ -89,7 +103,8 @@ if __name__ == "__main__":
     steps =  dataset.variables['step']
     print("Dataset steps:", steps)
     
-    step = 7 # 7z on 15th 
+#    step = 7 # 7z on 15th
+
     
     timestamps = dataset["time"].values.copy()
     forecast_init_time = timestamps[0] # 15Sep 2007
@@ -118,6 +133,11 @@ if __name__ == "__main__":
         "lon": slice(min_lon, max_lon)
     })['z500'].values.copy()
     
+    h500_a = derived.sel({
+        "lat": slice(min_lat, max_lat),
+        "lon": slice(min_lon, max_lon)
+    })['z500'][step].values.copy()
+
     looked_rel_vorticity = derived.sel({
         "step": steps[step],
         "lat": slice(min_lat, max_lat),
@@ -126,6 +146,8 @@ if __name__ == "__main__":
     
     print_array('z500', z500)
     print_array('h500', h500)
+    print_array('h500_a', h500_a)
+    
     #
     # h500 and z500 should be identical
     #
@@ -134,6 +156,15 @@ if __name__ == "__main__":
     if rmse != 0:
         print("Error: z500 and h500 differ")
         sys.exit()
+    print("Heights match")
+
+    mse = np.mean((h500 - h500_a) ** 2)
+    rmse = np.sqrt(mse)
+    if rmse != 0:
+        print("Error: h500 and h500_a differ")
+        sys.exit()
+    print("Selected Heights match")
+    
     #
     # print a tables of data
     #
@@ -154,9 +185,9 @@ if __name__ == "__main__":
     # compute vorticity, multiply by gravity, divide by f
     computed_rel_vorticity = zeta * GRAVITY / f
     print_array('Computed Vorticity', computed_rel_vorticity)
-    f_35deg = 2. * OMEGA * np.sin(np.deg2rad(35.))
+    f_lat0 = 2. * OMEGA * np.sin(np.deg2rad(lat0))
     print("Omega: ", OMEGA)
-    print("f 35 deg: ", f_35deg)
+    print("f at center lat: ", f_lat0)
     print_array('Looked up Rel vorticity', looked_rel_vorticity)
     
     u = -GRAVITY/f*ddy
@@ -176,13 +207,23 @@ if __name__ == "__main__":
         "lon": slice(min_lon, max_lon)
     })['wind_u'].values.copy()
     
-    
+    if wind_u[1,1] == u[1,1] :
+        print("U winds match")
+    else:
+        print("U winds dont match");
+        sys.exit()
+
     wind_v= derived.sel({
         "step": steps[step],
         "lat": slice(min_lat, max_lat),
         "lon": slice(min_lon, max_lon)
     })['wind_v'].values.copy()
     
+    if wind_v[1,1] == v[1,1] :
+        print("V winds match")
+    else:
+        print("V winds dont match");
+        sys.exit()
     
     look_speed = derived.sel({
         "step": steps[step],
@@ -190,12 +231,18 @@ if __name__ == "__main__":
         "lon": slice(min_lon, max_lon)
     })['speed'].values.copy()
     
+    if speed[1,1] == look_speed[1,1]:
+        print("Speeds match");
+    else:
+        print("Speed do not match")
+        sys.exit()
+        
     print_array('Looked up U', wind_u)
     print_array('Looked up V', wind_v)
     print_array('Looked up speed', look_speed)
     dx0 = dx[1,1]
     dy0 = dy[1,1]
-    f0 = f_35deg
+#    f0 = f_35deg
     h0 = h500[1,1]
     h1 = h500[1,2]
     h3 = h500[1,0]
@@ -208,5 +255,39 @@ if __name__ == "__main__":
     d2y0 = d2y[1,1]
 #    zeta1 = (d2x/dx**2 + d2y/dy**2)*GRAVITY/f
     print("d2x0:", d2x0, " d2y0:", d2y0, " dx0:", dx0, " dy0:", dy0)
-    zeta1 = (d2x0 / dx0**2 + d2y0 / dy0**2) * GRAVITY /f0
+    zeta1 = (d2x0 / dx0**2 + d2y0 / dy0**2) * GRAVITY /f_lat0
     print('Computed vorticity',zeta1)
+    if zeta1 != looked_rel_vorticity[1,1]:
+        print('Computed vorticity and looked up differ')
+        sys.exit()
+    else:
+        print('Computed and looked up vorticity agree')
+    #
+    # test that the interp function works right
+    # 
+    #
+    zeta2 = getvort_v4(derived, lat0, lon0, step)
+    looked_abs_vorticity = derived.sel({
+        "step": steps[step],
+        "lat": slice(min_lat, max_lat),
+        "lon": slice(min_lon, max_lon)
+    })['abs_vorticity'].values.copy()
+
+    print("looked up absolute vorticity:", looked_abs_vorticity[1,1])
+    print("get_vort finds: ", zeta2)
+    if zeta2 == looked_abs_vorticity[1,1]:
+        print("getvort_v4 works right")
+    else:
+        print("getvort is not working right")
+        sys.exit()
+    # compared with computed absolute vortiticity
+    abs_vort_computed = zeta1 + f_lat0
+    print("Absolute voriticty computed:", abs_vort_computed)
+    if abs_vort_computed == zeta2:
+        print("Computed absolute voriticity agreed with getvort_v4")
+    else:
+        print("Computed absolute voriticitu differs from getvort")
+        sys.exit()
+    print("All tests passed")
+    
+        
