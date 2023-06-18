@@ -1,8 +1,8 @@
 \documentclass{article}
 \setlength{\parskip}{1em} % Adjust the desired spacing
 \setlength{\parindent}{0pt} % No indentation
-\usepackage{amsmath}
-
+\usepackage{amsmath} % has the text command
+\usepackage{hyperref} % enables hyperlinks
 \begin{document}
 \title{Project Documentation}
 \section{Introduction}
@@ -11,16 +11,16 @@ This document describes the computation of vorticity and winds from theheight fi
 \section{Equations}
 
 \subsection{Wind calculations}
-Winds were calculated from the output 500 mb geopotential, $\phi$:
+Winds were calculated from the output 500 mb geopotential, $\psi$:
 \begin{equation}
-  \phi = g \cdot z_{500}
+  \psi = g \cdot z_{500}
 \end{equation}
 where $z_{500}$ is the height, $m$, of the 500 mb surface, and $g$ is
 gravity, $ms^{-2}$.
 
 East-west, $u$, and north-south, $v$, componentsof winds, $ms^{-1}$:
 \begin{equation}
-u  = - \frac{1}{f \cdot a}\frac{\partial \phi}{\partial \theta}
+u  = - \frac{1}{f \cdot a \cdot cos(\theta)}\frac{\partial \psi}{\partial \theta}
 \end{equation}
 where $\theta$ is latitude, $\text{rad}$, and $a$ is the earth's radius, $m$.
 $f$ is the coriolis parameter:
@@ -30,7 +30,7 @@ $f$ is the coriolis parameter:
 $\Omega$ is the rotational rate of the earth, $\text{rad/s}$.
 
 \begin{equation}
-v  =  \frac{1}{f \cdot a \cdot cos(\theta)}\frac{\partial \phi}{\partial \lambda}
+v  =  \frac{1}{f \cdot a }\frac{\partial \psi}{\partial \lambda}
 \end{equation}
  where $\lambda$ is the longitude, $\text{rad}$.
 
@@ -50,7 +50,36 @@ Wind speed, $s$, $m s^{-1}$, was computed
  \end{equation}
  
 \subsection{Trajectories}
- After computation of these fields was completed, trajectories were computed
+Trajectories were computed,
+one for every 10 degrees of latitude and longitude across the region of
+interest, which was North America. The model output has hourly dumps of geopotential going out 7 days. For this study we ran the trajectories out 48 hours.  And created a sample of 78 trajectories to cover the North American domain.
+
+Each trajectory comprised a start and end time, and start and end latitude and longitude, plus an array of trajectory points, each containing the time step, the latitude and longitude of the point, the corresponding absolute vorticity value, as calculated on a grid, and then interpolated bi-linearly from the grid to the specific point location for the given time step.
+
+Trajectories were represented by position vectors,
+$\vec{P} = \vec{P}(\theta,\lambda,t)$, varying with latitude, longitude and time, $t$. These were computed by integrating the derived wind vector,
+\begin{equation}
+  \vec{V} = u \hat{i} + v \hat{j}
+\end{equation}
+over time:
+\begin{equation}
+  \vec{P}(\theta,\lambda, t) =  \int_{0}^{t}
+  \vec{V}(\theta ,\lambda ,t)  dt
+\end{equation}
+
+After these trajectories were computed,
+the absolute vorticity along the trajectory was determined by interpolating from the
+gridded field of absolute vorticity to the specific location of each node in the trajectory. This redued the data to a timeseries of vorticity values, from which
+line plots of $\zeta_{abs}$ versus $t$ were made
+to see how well vorticity was conserved along each trajectory.
+
+
+\href{https://en.wikipedia.org/wiki/Heun%27s_method}{Huen's} method of performing time intergration was applied to the wind fields.
+
+  Given time step, $\delta t$, $\text{1 h}$, the $u$ component of the wind was stepped forward in time using
+  \begin{equation}
+    u(t_{n+1}) = u(t_{n}) + \nabla t \cdot u(x_{n}, t_{n})
+   \end{equation}
 \end{document}
 
 
