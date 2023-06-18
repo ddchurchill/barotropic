@@ -43,32 +43,23 @@ def centered_diff(z, x, y):
         dzdx[j,0] = (z[j,1] - z[j,0])/(x[j,1] - x[j,0])
         dzdx[j,-1] = (z[j,-1] - z[j,-2])/(x[j,-1] - x[j,-2])
 #
-# now try the numpy way -- not working, shape mismatches.
-#
-#    dx0 = np.diff(x)
-#    dy0 = np.diff(y)
-# add padding in first row and column
-#    dx =  np.pad(dx0, ((0, 0),(0,1)), mode='constant', constant_values=0)
-#    dy =  np.pad(dy0, ((1, 0),(0,0)), mode='constant', constant_values=0)
-#    print("centered diff: dx shape:", dx.shape)
-#    dzdx[1:-1] = (z[1:] / dx[1:] + z[:-1] / dx[:-1]) / 2
-#    dzdx[0] = (z(x[1]) - z(x[0])) / (x[1] - x[0])
-#    dzdx[-1] = (z(x[-1]) - z(x[-2])) / (x[-1] - x[-2])
-#    dzdy[1:-1] = (z[1:] / dy[1:] + z[:-1] / dy[:-1]) / 2
-#    dzdy[0] = (z(y[1]) - z(y[0])) / (y[1] - y[0])
-#    dzdy[-1] = (z(y[-1]) - z(y[-2])) / (y[-1] - y[-2])
 
-    return dzdx, dzdy
+    return dzdx.copy(), dzdy.copy()
 #
-# second derivative of f with respect to dx
+# second derivative of z  with respect to x and y
+# returns d2zdx2 and d2zdy2
 #
-def second(z):
+def second(z, x, y):
     d2zdx2 = np.zeros_like(z)
+    d2zdy2 = np.zeros_like(z)
     nrows, ncols = z.shape
     for i in range(1, ncols-1):
         for j in range(1, nrows-1) :
-            d2zdx2[j,i] = z[j,i+1] + z[j,i-1] - 2*z[j,i]
-    return d2zdx2
+            dx = x[j, i+1] - x[j,i-1]
+            d2zdx2[j,i] = (z[j,i+1] + z[j,i-1] - 2*z[j,i])/dx**2
+            dy = y[j+1,i] - y[j,i]
+            d2zdy2[j,i] = (z[j+1,i] + z[j-1,i] - 2*z[j,i])/dy**2            
+    return d2zdx2, d2zdy2
 #
 # first derivative with respect to y
 #

@@ -271,35 +271,30 @@ def prescribe_winds3():
     """
     prescriber_winds3 ;
     use mu = sin(theta) as north-south cooridinate
-    use gradient calls to diferentiate
+    use centered differences to differentiate
     """
     mu = np.sin(lat_rad) # 2-D array north-south component
-    mu1 = np.sin(np.deg2rad(lat_lin)) # 1-D array
-
-    phi = GRAVITY * geopot
-    dphidmu = np.gradient(phi, mu1, axis=0)
-    dphidmu1 = (1 - mu**2)*dphidmu
-    d2phidmu2 = np.gradient(dphidmu1, mu1,  axis=0)
-
-# east-west component 
-#
     lambdax = np.cos(lat_rad)* EARTH_RADIUS * lon_rad
-    dlambdax = np.gradient(lambdax, axis=1)
-# first derivative w/r longitude
-    dphidlambda = np.gradient(phi,axis=1)/dlambdax
-# 2nd derivative w/r longitude
-    d2phidlambda2 = np.gradient(dphidlambda,axis=1)/dlambdax 
-# scaled by 1/cosine squared
-    d2phi1 = d2phidlambda2 / ( 1 - mu**2) 
-#
-# Add north-south and east-west second derivatives
-# Note need to divide by f, otherwise too small by 10^-1!  5/9/23
-    zeta =  (d2phidmu2 + d2phi1) / EARTH_RADIUS**2 /f
-#
-# compute geostrophic winds
-#
-    ug = -  dphidmu * np.cos(lat_rad)/EARTH_RADIUS /f
-    vg =  dphidlambda /f
+    psi = GRAVITY * geopot
+
+    dpsidlambda, dpsidmu =  centered_diff(psi, lambdax, mu)
+    dpsidmu1 = (1 - mu**2)*dpsidmu
+    # 2nd derivative w/r longitude
+
+    u0, u1, u2, u3, u4, d2psidlambda2, u6, u7 = laplacian(psi, lambdax, mu)
+    # scaled by 1/cosine squared
+    d2psi1 = d2psidlambda2 / ( 1 - mu**2) 
+    #
+    unused, d2psidmu2 = centered_diff(dpsidmu1, lambdax, mu)
+    #
+    # Add north-south and east-west second derivatives
+    # Note need to divide by f, otherwise too small by 10^-1!  5/9/23
+    zeta =  (d2psidmu2 + d2psi1) / EARTH_RADIUS**2 / f
+    #
+    # compute geostrophic winds
+    #
+    ug = -  dpsidmu * np.cos(lat_rad)/EARTH_RADIUS /f
+    vg =  dpsidlambda /f
 
     # compute wind speed
     speed = np.sqrt(ug*ug + vg*vg)
@@ -359,18 +354,20 @@ def prescribe_winds4(): # use new laplacian code.
     y_coord = EARTH_RADIUS * lat_rad
 #    print("winds4 z:", geopot)
     zeta, dx, dy, ddx, ddy, d2x, d2y, delsquared  = \
-        laplacian(geopot, x_coord, y_coord)
+        laplacian(geopot/f, x_coord, y_coord)
 #    print("dx", dx)
 #    print("dy", dy)
     
 
+    u_zeta, u_dx, u_dy, ddx, ddy, u_d2x, u_d2y, u_delsquared  = \
+        laplacian(geopot, x_coord, y_coord)
     
     ug = -GRAVITY/f*ddy
     vg = GRAVITY/f*ddx
     
     speed = np.sqrt(ug**2 + vg**2)
     #
-    zeta = (d2x/dx**2 + d2y/dy**2)*GRAVITY/f
+    zeta = (d2x/dx**2 + d2y/dy**2)*GRAVITY
 
     return ug, vg, zeta, speed
 
@@ -803,16 +800,19 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
 
 
     zeta = dataset['rel_vorticity'][time_index].values.copy()
-    u = dataset['wind_u'][time_index].values
-    v = dataset['wind_v'][time_index].values
+    u = dataset['wind_u'][time_index].values.copy()
+    v = dataset['wind_v'][time_index].values.copy()
     x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
     y = EARTH_RADIUS * lat_rad
 
-    dzetadx = np.gradient(zeta, axis=1)/np.gradient(x, axis=1)
-    dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
+#    dzetadx = np.gradient(zeta, axis=1)/np.gradient(x, axis=1)
+#    dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
 
-    dfdx = np.gradient(f,axis=1)/np.gradient(x, axis=1)
-    dfdy = np.gradient(f, axis=0)/np.gradient(y, axis=0)
+    dzetadx, dzetady = centered_diff(zeta, x, y)
+#    dfdx = np.gradient(f,axis=1)/np.gradient(x, axis=1)
+#    dfdy = np.gradient(f, axis=0)/np.gradient(y, axis=0)
+
+    dfdx, dfdy = centered_diff(f, x, y)
 
     f_adv = -(u * dfdx + v * dfdy)
     vadv = -(u * dzetadx + v*dzetady)
@@ -831,6 +831,14 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
         dzetadt = (zeta_t1 - zeta_t0) / (2 * deltat)
         
     error = dzetadt - vadv - f_adv
+    #
+    # redo plotting del[ (f + zeta) V]
+    u_vort = u * (zeta + f)
+    v_vort = v * (zeta +f)
+    du_vort, unused = centered_diff(u_vort, x, y)
+    unused, dv_vort = centered_diff(v_vort, x, y)
+    divergence = du_vort + dv_vort
+    error = dzetadt + divergence
     
     fig, ax = plt.subplots(2,2,\
                            figsize=(20, 10), \
@@ -846,7 +854,7 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
 
 
     con1 = ax[0,0].contourf(lon_lin, lat_lin,error,\
-#                            vmin=-2.e-8, vmax=2.e-8, \
+                            vmin=-2.e-8, vmax=2.e-8, \
                             levels=16, cmap='jet', \
                             transform=ccrs.PlateCarree())
 
@@ -855,34 +863,43 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
     # plot error - difference from zero
     vmin = -1.e-8
     vmax= 1.e-8
-    con1 = ax[0,0].contourf(lon_lin, lat_lin, error, cmap='jet')
-#                            vmin=vmin, vmax=vmax)
+    con1 = ax[0,0].contourf(lon_lin, lat_lin, error, cmap='jet', \
+                            vmin=-2.e-8, vmax=2.e-8)
     plt.colorbar(con1, ax=ax[0,0], orientation='horizontal')
     ax[0,0].set_title('Error: '+ term0 )
 
 
     # plot localtime derivative
     term1 = r'$\frac{\delta \zeta}{\delta t}$'
-    con2 = ax[1,0].contourf(lon_lin,lat_lin,dzetadt, cmap='jet')
-#                            vmin=vmin, vmax=vmax)
+    con2 = ax[1,0].contourf(lon_lin,lat_lin,dzetadt, cmap='jet', \
+                            vmin=-1.e-9, vmax=1.e-9)
     plt.colorbar(con2, ax=ax[1,0], orientation='horizontal')
     ax[1,0].set_title('Local time derivative, ' + term1)
 
     
     # plot relative advection
     term2 = r'$ - \overrightarrow{V} \cdot \nabla \zeta$'
-    con3 = ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet')
-#                            vmin=vmin, vmax=vmax)
+    con3 = ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet', \
+                            vmin=-2.e-8, vmax=2.e-8)
     plt.colorbar(con3, ax=ax[1,1], orientation='horizontal')
     ax[1,1].set_title('Relative Advection, ' + term2)
     
     # plot planetary advection
     term3 = r'$ - \overrightarrow{V} \cdot \nabla f$'
-    con4 = ax[0,1].contourf(lon_lin,lat_lin,f_adv, levels=16, cmap='jet')
- #                           vmin=vmin, vmax=vmax)
-    ax[0,1].set_title('Planetary Advection, ' + term3)
-    plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
+#    con4 = ax[0,1].contourf(lon_lin,lat_lin,f_adv, levels=16, cmap='jet',\
+#                           vmin=-1.e-9, vmax=1.e-9)
+#    ax[0,1].set_title('Planetary Advection, ' + term3)
+#    plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
 
+    # plot the divergence term
+    term3 = r'$ \nabla [(\zeta + f) \overrightarrow{V}]$'
+    con4 = ax[0,1].contourf(lon_lin,lat_lin,divergence, \
+#                            vmin=-1.e-9, vmax=1.e-9, \
+                            levels=16, cmap='jet')
+
+    ax[0,1].set_title('Divergence, ' + term3)
+    plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
+    
     # Draw the continents and coastlines in white
     for axis in ax.flat:
         axis.coastlines(linewidth=0.5, color='black')
@@ -977,9 +994,9 @@ else:
 #        geopot = north_wind_v2(geopot, lat_lin, lon_lin)
         # geopot = ridge_and_trough()
 # verion 3 uses mu with gradient calls
-#        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
+        winds_u, winds_v, zeta3, speed3 = prescribe_winds3()
 # version 4 uses centered differences that I validated in file dumpz.py
-        winds_u, winds_v, zeta3, speed3 = prescribe_winds4()
+#        winds_u, winds_v, zeta3, speed3 = prescribe_winds4()
         #        version 2 uses my centereed differences≈
 #        winds_u, winds_v, zeta3, speed3 = prescribe_winds2()
         #
@@ -1011,12 +1028,12 @@ show_plots = False
 dt_hours = 1 # time step in hoursdeltat = dt_hours * 3600
 # time step in second
 deltat = dt_hours * 3600
-plot_all_fields(data, maxsteps, deltat, show_plots)
+#plot_all_fields(data, maxsteps, deltat, show_plots)
 #
 # plot all vorticity terms
 nsteps = 48 # number of step to integrate over
-plot_vort_terms = False
-if plot_vort_terms:
+do_plot_vort_terms = True
+if do_plot_vort_terms:
     for time_index in range(0, nsteps):
         print("Plotting vorticity terms ", time_index)
         plot_vort_terms(data, deltat, time_index, show_plots)
@@ -1037,7 +1054,7 @@ start_time = data['time']
 
 # plot trajectoriea at given time periods
 do_trajectories = True
-plot_trajectories = False
+do_plot_trajectories = True
 if do_trajectories:
     print("Computing trajectories")
     #
@@ -1055,14 +1072,14 @@ if do_trajectories:
     stop_time_str, stop_time = get_timestamp(start_time, start_step + nsteps)
     print(start_time_str, stop_time_str)
 
-    if plot_trajectories:
+    if do_plot_trajectories:
         print("Plotting trajectories")
         plot_trajectories(trajectories, start_time, stop_time)
 
-        # print each trajectory with a vorticity timeline
-        for i, t in enumerate(trajectories):
-            filename = "tstep_" + str(dt_hours) + "hour" + str(i)
-            plot_one_trajectory(t,filename, start_time, stop_time)
-            print("saved ", filename)
+    # print each trajectory with a vorticity timeline
+    for i, t in enumerate(trajectories):
+        filename = "tstep_" + str(dt_hours) + "hour" + str(i)
+        plot_one_trajectory(t,filename, start_time, stop_time)
+        print("saved ", filename)
 
 
