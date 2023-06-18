@@ -1,0 +1,56 @@
+\documentclass{article}
+\setlength{\parskip}{1em} % Adjust the desired spacing
+\setlength{\parindent}{0pt} % No indentation
+\usepackage{amsmath}
+
+\begin{document}
+\title{Project Documentation}
+\section{Introduction}
+This document describes the computation of vorticity and winds from theheight fields output from the barotropic model, and the calculation of trajectories using the winds, and from there, plotting the values of absolute vorticity along the trajectories.
+
+\section{Equations}
+
+\subsection{Wind calculations}
+Winds were calculated from the output 500 mb geopotential, $\phi$:
+\begin{equation}
+  \phi = g \cdot z_{500}
+\end{equation}
+where $z_{500}$ is the height, $m$, of the 500 mb surface, and $g$ is
+gravity, $ms^{-2}$.
+
+East-west, $u$, and north-south, $v$, componentsof winds, $ms^{-1}$:
+\begin{equation}
+u  = - \frac{1}{f \cdot a}\frac{\partial \phi}{\partial \theta}
+\end{equation}
+where $\theta$ is latitude, $\text{rad}$, and $a$ is the earth's radius, $m$.
+$f$ is the coriolis parameter:
+\begin{equation}
+  f = 2 \Omega sin(\theta)
+\end{equation}
+$\Omega$ is the rotational rate of the earth, $\text{rad/s}$.
+
+\begin{equation}
+v  =  \frac{1}{f \cdot a \cdot cos(\theta)}\frac{\partial \phi}{\partial \lambda}
+\end{equation}
+ where $\lambda$ is the longitude, $\text{rad}$.
+
+Wind speed, $s$, $m s^{-1}$, was computed
+ \begin{equation}
+   s = \sqrt{u^2 + v^2}
+   \end{equation}
+
+\subsection{Vorticity calculation}
+ Relative vorticity, $\zeta$, was computed from the Laplacian of the geopotential field:
+ \begin{equation}
+   \zeta = \frac{1}{f}\nabla^{2}\phi
+ \end{equation}
+ and absolute vorticity was determined by adding $f$:
+ \begin{equation}
+   \zeta_{abs} = \zeta + f
+ \end{equation}
+ 
+\subsection{Trajectories}
+ After computation of these fields was completed, trajectories were computed
+\end{document}
+
+
