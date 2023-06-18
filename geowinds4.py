@@ -503,8 +503,8 @@ def plot_one_trajectory(traj, filename, start_time, stop_time):
     ax.add_feature(cartopy.feature.BORDERS, linewidth=0.5, edgecolor='black')
 
     # Draw parallels and meridians
-    parallels = range(min_lat, max_lat, 10)
-    meridians = range(min_lon, max_lon, 10)
+    parallels = range(min_lat, max_lat + 10, 10)
+    meridians = range(min_lon, max_lon + 10, 10)
     ax.gridlines(draw_labels=True, linewidth=1, color='gray', alpha=0.5,
                  linestyle='--')
     ax.set_xticks(meridians, crs=ccrs.PlateCarree())
@@ -659,117 +659,8 @@ def plot_speed_v2(dataset, time_index, time_str, showplot):
     plt.close()
     
     
-def plot_vort_v2(dataset, time_index, time_str, showplot):
 
-    vort = dataset['abs_vorticity'][time_index].values.copy()
-      
-    fig3 = plt.figure(figsize=(12,8))
-    # Draw the continents and coastlines in white                                                                            
-    m.drawcoastlines(linewidth=0.5, color='white')
-    m.drawcountries(linewidth=0.5, color='white')
-
-    x, y = m(lon, lat)
-
-    m.contourf(x,y,vort, cmap='rainbow',levels=16,\
-               vmin=0., vmax=3.e-4, extend='neither')
-    # Add a colorbar and title                                                                                      
-    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
-    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
-    cbar = plt.colorbar()
-    label='Vorticity'
-    units = r'$s^{-1}$'
-    cbar.set_label(f'{label} ({units})')
-    plt.title('Absolute Vorticity ' + time_str)
-    plt.savefig("abs_vort"+time_str+".png")
-    if showplot:
-        plt.show()
-    plt.close()
-
-
-def plot_rel_vort_v2(dataset, time_index, time_str, showplot):
-
-        
-#    time_stamp = dataset['time'][time_index].values
-#    time_str = np.datetime_as_string(time_stamp, unit='s')
-    vort = dataset['rel_vorticity'][time_index].values.copy()
-
-    fig3a = plt.figure(figsize=(12,8))
-    # Draw the continents and coastlines in white                                                                            
-    m.drawcoastlines(linewidth=0.5, color='white')
-    m.drawcountries(linewidth=0.5, color='white')
-
-    x, y = m(lon, lat)
-
-#    m.contourf(x,y,vort, cmap='jet',levels=16, \
-#               vmin=-6.e-4,vmax=6.e-4, extend='neither')
-    m.contourf(x,y,vort, cmap='jet',levels=16)
- 
-
-    # Add a colorbar and title                                                                                      
-    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
-    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
-
-    cbar = plt.colorbar()
-    label='Vorticity'
-    units = r'$s^{-1}$'
-    cbar.set_label(f'{label} ({units})')
-
-    plt.title('Relative Vorticity ' + time_str)
-    plt.savefig("rel_vort"+time_str+".png")
-    if showplot:
-        plt.show()
-    plt.close()
     
-def plot_vort_advection(dataset, time_index, time_str, deltat, showplot):
-
-        
-    zeta = dataset['abs_vorticity'][time_index].values.copy()
-    u = dataset['wind_u'][time_index].values.copy()
-    v = dataset['wind_v'][time_index].values.copy()
-    x = np.cos(lat_rad)*EARTH_RADIUS*lon_rad
-    y = EARTH_RADIUS * lat_rad
-    dzetadx = np.gradient(zeta, axis=1)/np.gradient(x, axis=1)
-    dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
-
-    vadv = -(u * dzetadx + v*dzetady)
-
-    if time_index == 0 :
-        zeta_t1 = dataset['abs_vorticity'][1].values.copy()
-        zeta_t0  = dataset['abs_vorticity'][1].values.copy()
-        dzetadt = (zeta_t1 - zeta_t0) / deltat
-    elif time_index >= maxsteps -1 :
-        zeta_t1 = dataset['abs_vorticity'][maxsteps -1].values.copy()
-        zeta_t0  = dataset['abs_vorticity'][maxsteps -2].values.copy()
-        dzetadt = (zeta_t1 - zeta_t0) / deltat
-    else:
-        zeta_t1 = dataset['abs_vorticity'][time_index + 1].values.copy()
-        zeta_t0  = dataset['abs_vorticity'][time_index -1].values.copy()
-        dzetadt = (zeta_t1 - zeta_t0) / (2 * deltat)
-        
-    error = dzetadt - vadv
-    
-    fig = plt.figure(figsize=(12,8))
-    
-    # Draw the continents and coastlines in white                                                                            
-    m.drawcoastlines(linewidth=0.5, color='black')
-    m.drawcountries(linewidth=0.5, color='black')
-
-    x, y = m(lon, lat)
-
-    m.contourf(x,y,error, cmap='jet',levels=20)
-               
-    # Add a colorbar and title                                                                                      
-    m.drawmeridians(range(min_lon, max_lon, 10), linewidth=1, labels=[0,0,0,1])
-    m.drawparallels(range(min_lat,max_lat, 10), labels=[1,0,0,0])         
-    label='Vorticity Imbalance Errorn'
-    units = r'$s^{-2}$'
-    cbar = plt.colorbar()
-    cbar.set_label(f'{label} ({units})')
-    plt.title('Vorticity Error ' + time_str)
-    plt.savefig("vort_err"+time_str+".png")
-    if showplot:
-        plt.show()
-    plt.close()
 
 def plot_all_fields(dataset, nsteps, deltat, showplot):
     # plot the fields for all time periods
@@ -783,13 +674,11 @@ def plot_all_fields(dataset, nsteps, deltat, showplot):
         start_time = dataset['time'].values
         time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
         time_str = np.datetime_as_string(time_stamp, unit='s')
-        plot_vort_advection(data, time_index, time_str, deltat, showplot)
+#        plot_vort_advection(data, time_index, time_str, deltat, showplot)
 #        plot_winds_v2(data,time_index, time_str, showplot) 
 #        plot_speed_v2(data,time_index, time_str, showplot)
         # plot the absolute  voriticity
-#        plot_vort_v2(data,time_index, time_str, showplot)
-        # plot relative vorticity
-#        plot_rel_vort_v2(data,time_index, time_str, showplot)
+
 
 # done making and saving plots.
 #
@@ -809,8 +698,6 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
 #    dzetady = np.gradient(zeta, axis=0)/np.gradient(y,axis=0)
 
     dzetadx, dzetady = centered_diff(zeta, x, y)
-#    dfdx = np.gradient(f,axis=1)/np.gradient(x, axis=1)
-#    dfdy = np.gradient(f, axis=0)/np.gradient(y, axis=0)
 
     dfdx, dfdy = centered_diff(f, x, y)
 
@@ -833,12 +720,12 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
     error = dzetadt - vadv - f_adv
     #
     # redo plotting del[ (f + zeta) V]
-    u_vort = u * (zeta + f)
-    v_vort = v * (zeta +f)
-    du_vort, unused = centered_diff(u_vort, x, y)
-    unused, dv_vort = centered_diff(v_vort, x, y)
-    divergence = du_vort + dv_vort
-    error = dzetadt + divergence
+#    u_vort = u * (zeta + f)
+#    v_vort = v * (zeta +f)
+#    du_vort, unused = centered_diff(u_vort, x, y)
+#    unused, dv_vort = centered_diff(v_vort, x, y)
+#    divergence = du_vort + dv_vort
+#    error = dzetadt + divergence
     
     fig, ax = plt.subplots(2,2,\
                            figsize=(20, 10), \
@@ -854,7 +741,7 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
 
 
     con1 = ax[0,0].contourf(lon_lin, lat_lin,error,\
-                            vmin=-2.e-8, vmax=2.e-8, \
+#                            vmin=-2.e-8, vmax=2.e-8, \
                             levels=16, cmap='jet', \
                             transform=ccrs.PlateCarree())
 
@@ -864,7 +751,8 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
     vmin = -1.e-8
     vmax= 1.e-8
     con1 = ax[0,0].contourf(lon_lin, lat_lin, error, cmap='jet', \
-                            vmin=-2.e-8, vmax=2.e-8)
+#                            vmin=-2.e-8, vmax=2.e-8,\
+                            )
     plt.colorbar(con1, ax=ax[0,0], orientation='horizontal')
     ax[0,0].set_title('Error: '+ term0 )
 
@@ -872,7 +760,8 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
     # plot localtime derivative
     term1 = r'$\frac{\delta \zeta}{\delta t}$'
     con2 = ax[1,0].contourf(lon_lin,lat_lin,dzetadt, cmap='jet', \
-                            vmin=-1.e-9, vmax=1.e-9)
+#                            vmin=-1.e-9, vmax=1.e-9, \
+                            )
     plt.colorbar(con2, ax=ax[1,0], orientation='horizontal')
     ax[1,0].set_title('Local time derivative, ' + term1)
 
@@ -880,25 +769,26 @@ def plot_vort_terms(dataset, deltat , time_index, showplot):
     # plot relative advection
     term2 = r'$ - \overrightarrow{V} \cdot \nabla \zeta$'
     con3 = ax[1,1].contourf(lon_lin,lat_lin,vadv, levels=16, cmap='jet', \
-                            vmin=-2.e-8, vmax=2.e-8)
+                            #                            vmin=-2.e-8, vmax=2.e-8, \
+                            )
     plt.colorbar(con3, ax=ax[1,1], orientation='horizontal')
     ax[1,1].set_title('Relative Advection, ' + term2)
     
     # plot planetary advection
     term3 = r'$ - \overrightarrow{V} \cdot \nabla f$'
-#    con4 = ax[0,1].contourf(lon_lin,lat_lin,f_adv, levels=16, cmap='jet',\
-#                           vmin=-1.e-9, vmax=1.e-9)
-#    ax[0,1].set_title('Planetary Advection, ' + term3)
-#    plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
+    con4 = ax[0,1].contourf(lon_lin,lat_lin,f_adv, levels=16, cmap='jet',\
+                           vmin=-1.e-9, vmax=1.e-9)
+    ax[0,1].set_title('Planetary Advection, ' + term3)
+    plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
 
     # plot the divergence term
-    term3 = r'$ \nabla [(\zeta + f) \overrightarrow{V}]$'
-    con4 = ax[0,1].contourf(lon_lin,lat_lin,divergence, \
+#    term3 = r'$ \nabla [(\zeta + f) \overrightarrow{V}]$'
+#    con4 = ax[0,1].contourf(lon_lin,lat_lin,divergence, \
 #                            vmin=-1.e-9, vmax=1.e-9, \
-                            levels=16, cmap='jet')
+#                            levels=16, cmap='jet')
 
-    ax[0,1].set_title('Divergence, ' + term3)
-    plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
+#    ax[0,1].set_title('Divergence, ' + term3)
+#    plt.colorbar(con4, ax=ax[0,1], orientation='horizontal')
     
     # Draw the continents and coastlines in white
     for axis in ax.flat:
@@ -1053,7 +943,7 @@ start_time = data['time']
 
 
 # plot trajectoriea at given time periods
-do_trajectories = True
+do_trajectories = False
 do_plot_trajectories = True
 if do_trajectories:
     print("Computing trajectories")
@@ -1078,7 +968,7 @@ if do_trajectories:
 
     # print each trajectory with a vorticity timeline
     for i, t in enumerate(trajectories):
-        filename = "tstep_" + str(dt_hours) + "hour" + str(i)
+        filename = "trajectory" + str(i)
         plot_one_trajectory(t,filename, start_time, stop_time)
         print("saved ", filename)
 

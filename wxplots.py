@@ -53,25 +53,27 @@ class wxplots:
                        scale=3000, color='black')
 
         # plot relative vorticity
+        max_vort = 5.e-4  # uppeer limit for vorticity plot
         zeta_con = ax[0,1].contourf(lon_lin, lat_lin, zeta, cmap='jet', \
-                                    levels = 16,
-                                 vmin=-2.e-5, vmax=2.e-5, extend='neither')
+                                    levels = 16)
+# vmin=-max_vort, vmax=max_vort, extend='neither')
 
         zeta_bar = plt.colorbar(zeta_con, ax=ax[0,1], orientation='horizontal')
         ax[0,1].set_title('Relative Vorticity ' )
         units  = r'$(s^{-1})$'
         zeta_bar.set_label('Vorticity ' + units)
-        zeta_con.set_clim(vmin=-2.e-5, vmax=2.e-5)                 
+#        zeta_con.set_clim(vmin=-1.e-4, vmax=2.e-4)                 
         # plot absolute vorticity
+
         abs_vor_con = ax[1,1].contourf(lon_lin,lat_lin,abs_vor, \
                                        levels=16, cmap='jet',
-                                vmin=0., vmax=2.e-4, extend='neither')
+                                vmin=0., vmax=max_vort, extend='neither')
 
         abs_vor_bar = plt.colorbar(abs_vor_con, ax=ax[1,1], orientation='horizontal')
         ax[1,1].set_title('Absolute Vorticity ')
         units  = r'$(s^{-1})$'
         abs_vor_bar.set_label('Vorticity ' + units)
-        abs_vor_con.set_clim(vmin=0., vmax=2.e-4)        
+        abs_vor_con.set_clim(vmin=0., vmax=max_vort)        
 
         # plot wind speed
         speed_con = ax[1,0].contourf(lon_lin,lat_lin,speed, \
@@ -116,6 +118,6 @@ if __name__ == "__main__":
     for time_index in range(0,48):
         time_stamp = np.datetime64(start_time + pd.Timedelta(hours=time_index))
         time_str = np.datetime_as_string(time_stamp, unit='s')
-
+        print("plotting " , time_str)
         p.plot_4panel(data, time_index, time_str, show_plot)
 

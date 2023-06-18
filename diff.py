@@ -34,14 +34,14 @@ def centered_diff(z, x, y):
             dzdy[j,i] = (dzdy1 + dzdy2)/2.
             dzdy[j,i] = (z[j+1,i] - z[j-1,i])/(y[j+1,i] - y[j-1,i])
 #
-# do edges
+# don't do edges -- too noisy
 #
-    for i in range(0,ncols-1):
-        dzdy[0,i] = (z[1,i] - z[0,i])/(y[1,i] - y[0,i])
-        dzdy[-1,i] = (z[-1,i] - z[-2,i])/(y[-1,i] - y[-2,i])
-    for j in range(0,nrows -1):
-        dzdx[j,0] = (z[j,1] - z[j,0])/(x[j,1] - x[j,0])
-        dzdx[j,-1] = (z[j,-1] - z[j,-2])/(x[j,-1] - x[j,-2])
+#    for i in range(0,ncols-1):
+#        dzdy[0,i] = (z[1,i] - z[0,i])/(y[1,i] - y[0,i])
+#        dzdy[-1,i] = (z[-1,i] - z[-2,i])/(y[-1,i] - y[-2,i])
+#    for j in range(0,nrows -1):
+#        dzdx[j,0] = (z[j,1] - z[j,0])/(x[j,1] - x[j,0])
+#        dzdx[j,-1] = (z[j,-1] - z[j,-2])/(x[j,-1] - x[j,-2])
 #
 
     return dzdx.copy(), dzdy.copy()
