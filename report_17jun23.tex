@@ -11,7 +11,7 @@ This document describes the computation of vorticity and winds from theheight fi
 \section{Equations}
 
 \subsection{Wind calculations}
-Winds were calculated from the output 500 mb geopotential, $\psi$:
+Winds were calculated from the output 500 HPa geopotential, $\psi$:
 \begin{equation}
   \psi = g \cdot z_{500}
 \end{equation}
@@ -20,19 +20,23 @@ gravity, $ms^{-2}$.
 
 East-west, $u$, and north-south, $v$, componentsof winds, $ms^{-1}$:
 \begin{equation}
-u  = - \frac{1}{f \cdot a \cdot cos(\theta)}\frac{\partial \psi}{\partial \theta}
+  u(\theta, \lambda, t)  =
+  - \frac{1}{f(\theta) \cdot a \cdot cos(\theta)}
+  \frac{\partial \psi(\theta, \lambda, t)}{\partial \theta}
 \end{equation}
 where $\theta$ is latitude, $\text{rad}$, and $a$ is the earth's radius, $m$.
 $f$ is the coriolis parameter:
 \begin{equation}
-  f = 2 \Omega sin(\theta)
-\end{equation}
-$\Omega$ is the rotational rate of the earth, $\text{rad/s}$.
+  f(\theta) = 2 \Omega sin(\theta)
+\end{equation},
+ $\Omega$ is the rotational rate of the earth, $\text{rad/s}$.
+
 
 \begin{equation}
-v  =  \frac{1}{f \cdot a }\frac{\partial \psi}{\partial \lambda}
+  v(\theta, \lambda, t)  =  \frac{1}{f \cdot a }
+  \frac{\partial \psi (\theta, \lambda, t)}{\partial \lambda}
 \end{equation}
- where $\lambda$ is the longitude, $\text{rad}$.
+$\lambda$ is the longitude, $\text{rad}$.
 
 Wind speed, $s$, $m s^{-1}$, was computed
  \begin{equation}
@@ -69,17 +73,51 @@ over time:
 
 After these trajectories were computed,
 the absolute vorticity along the trajectory was determined by interpolating from the
-gridded field of absolute vorticity to the specific location of each node in the trajectory. This redued the data to a timeseries of vorticity values, from which
-line plots of $\zeta_{abs}$ versus $t$ were made
+gridded field of absolute vorticity to the specific location of each node in the trajectory. This reduced the data to a timeseries of vorticity values, from which
+line plots of $\zeta_{abs}$ versus time were made
 to see how well vorticity was conserved along each trajectory.
 
+\section{Numerics}
+
+Centered differences were used for first and second order derivatives. The meridional coordinate $\mu = sin(\theta)$ was used for derivatives.
+Thus relative vorticity was calculated as
+\begin{equation}
+  \zeta = \frac{1}{a^{2}}\{ 
+     \frac{\partial}{\partial \mu} 
+     [ ( 1 - \mu^{2})\frac{\partial \psi}{\partial \mu} ]
+     + \frac{1}{1 - \mu^2} \frac{\partial^2 \psi}{\partial \lambda^2}
+     \}
+  \end{equation}
+  
+
+\subsection{Wind and Vorticity}
+
+\subsection{Time integration}
 
 \href{https://en.wikipedia.org/wiki/Heun%27s_method}{Huen's} method of performing time intergration was applied to the wind fields.
 
-  Given time step, $\delta t$, $\text{1 h}$, the $u$ component of the wind was stepped forward in time using
+  Trajectories positions, $\vec{P}$, were initialized with
+  the initial latitude, longitude and time where we wanted it to begin: $P(\theta_{0},
+  \lambda_{0}, t_{0})$. Then
+given time step, $\Delta t$, $\text{1 h}$, the 
+   trajectory was stepped forward in time to give an initial guess:
+
   \begin{equation}
-    u(t_{n+1}) = u(t_{n}) + \nabla t \cdot u(x_{n}, t_{n})
-   \end{equation}
+    \vec{\overline{P}}(t_{n+1}) = \vec{P}(t_{n}) + \Delta t \phantom{\cdot}
+    \vec{V}[\vec{P(t_{n})},t_{n}]
+  \end{equation}
+  using the velocity vectors calculated earlier. This result was used
+  to make an 
+  an adjustment:
+  \begin{equation}
+    \vec{P}(t_{n+1}) = \vec{P}(t_{n}) +
+    \frac{\Delta t}{2}\{\vec{V}[\vec{P}(t_{n}),t_{n}]
+      + \vec{V}[\vec{\overline{P}}(t_{n+1}), t_{n+1}]\}
+\end{equation}
+  The Huen method is thus an average of a forward step using velocity
+  from the current time and position plus
+  a forward step using velocity based on the first guess at the next time and location. The effect, seen in trajectories, is that sharp turns from one time period to another were smoothed out by this second order scheme.
+  
 \end{document}
 
 
